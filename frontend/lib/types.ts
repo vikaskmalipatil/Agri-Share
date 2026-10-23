@@ -18,7 +18,8 @@ export interface AppUser {
   role_type: UserRole;
   address: string | null;
   created_at: string;
-  /** Added via migration 001_auth_user_id.sql – links to auth.users(id) */
+  password_hash?: string;
+  /** Legacy field for Supabase compatibility if needed */
   auth_user_id?: string | null;
 }
 

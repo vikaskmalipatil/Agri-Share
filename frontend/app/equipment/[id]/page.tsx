@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EquipmentStatusBadge } from "@/components/StatusBadge";
@@ -63,48 +62,33 @@ function EquipmentDetailContent() {
 
       try {
         // Fetch current session & user profile
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session && !cancelled) {
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("email", session.user.email!)
-            .single();
-          if (profile && !cancelled) {
-            setCurrentUser(profile as AppUser);
+        const userRes = await fetch("/api/auth/me");
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData?.user && !cancelled) {
+            setCurrentUser(userData.user as AppUser);
           }
         }
 
-        // Fetch equipment with type info
-        const { data: equipData, error: equipError } = await supabase
-          .from("equipment")
-          .select(
-            "equipment_id, model_name, daily_rate, status, type_id, owner_id, equipment_types(category_name, description)"
-          )
-          .eq("equipment_id", numId)
-          .single();
-
+        // Fetch equipment & drivers from MySQL API
+        const equipRes = await fetch(`/api/equipment/${numId}`);
         if (cancelled) return;
 
-        if (equipError || !equipData) {
+        if (!equipRes.ok) {
           setNotFound(true);
           setIsLoading(false);
           return;
         }
 
-        setEquipment(equipData as unknown as EquipmentDetail);
-
-        // Fetch qualified drivers for this machine
-        const { data: driverData } = await supabase
-          .from("equipment_drivers")
-          .select("equipment_id, driver_id, driver_hr_rate, cert_date, users:driver_id(full_name, phone)")
-          .eq("equipment_id", numId);
-
-        if (!cancelled) {
-          setDrivers((driverData as unknown as DriverWithUser[]) || []);
+        const equipJson = await equipRes.json();
+        if (!equipJson.equipment) {
+          setNotFound(true);
+          setIsLoading(false);
+          return;
         }
+
+        setEquipment(equipJson.equipment as EquipmentDetail);
+        setDrivers(equipJson.drivers || []);
       } catch (err: unknown) {
         if (!cancelled) {
           setError(
@@ -179,70 +163,24 @@ function EquipmentDetailContent() {
     setBookingError(null);
 
     try {
-      // 1. First attempt to call the concurrency-safe PostgreSQL function
-      const { data: rpcData, error: rpcErr } = await supabase.rpc("create_booking_safe", {
-        p_renter_id: currentUser.user_id,
-        p_equipment_id: equipment?.equipment_id,
-        p_driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
-        p_start_date: startDate,
-        p_end_date: endDate,
-        p_total_cost: calculatedCost.total,
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipment_id: equipment?.equipment_id,
+          driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
+          start_date: startDate,
+          end_date: endDate,
+          total_cost: calculatedCost.total,
+        }),
       });
 
-      let newBookingId: number | null = null;
-
-      if (!rpcErr && rpcData && rpcData.length > 0) {
-        if (rpcData[0].error_message) {
-          throw new Error(rpcData[0].error_message);
-        }
-        newBookingId = rpcData[0].booking_id;
-      } else {
-        // Fallback: Check overlapping bookings
-        const { data: conflicts } = await supabase
-          .from("bookings")
-          .select("booking_id")
-          .eq("equipment_id", equipment?.equipment_id)
-          .in("status", ["PENDING", "CONFIRMED"])
-          .lte("start_date", endDate)
-          .gte("end_date", startDate);
-
-        if (conflicts && conflicts.length > 0) {
-          throw new Error(
-            "This machine has already been booked for the selected dates. Please choose different dates."
-          );
-        }
-
-        // Insert booking record
-        const { data: inserted, error: insertErr } = await supabase
-          .from("bookings")
-          .insert({
-            renter_id: currentUser.user_id,
-            equipment_id: equipment?.equipment_id,
-            driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
-            start_date: startDate,
-            end_date: endDate,
-            total_cost: calculatedCost.total,
-            status: "PENDING",
-          })
-          .select("booking_id")
-          .single();
-
-        if (insertErr) throw insertErr;
-        newBookingId = inserted.booking_id;
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to complete booking.");
       }
 
-      // 2. Insert initial payment record (Academic demo payment workflow)
-      if (newBookingId) {
-        await supabase.from("payments").insert({
-          booking_id: newBookingId,
-          amount: calculatedCost.total,
-          payment_method: "UPI",
-          payment_status: "PENDING",
-          transaction_time: new Date().toISOString(),
-        });
-      }
-
-      setBookingSuccessId(newBookingId);
+      setBookingSuccessId(data.booking_id);
     } catch (err: unknown) {
       setBookingError(
         err instanceof Error ? err.message : "Failed to complete booking. Please try again."

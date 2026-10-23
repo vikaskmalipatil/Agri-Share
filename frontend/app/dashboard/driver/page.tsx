@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { BookingStatusBadge } from "@/components/StatusBadge";
@@ -31,62 +30,40 @@ export default function DriverDashboard() {
 
     async function initialLoad() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
+        const userRes = await fetch("/api/auth/me");
+        if (!userRes.ok) {
+          router.replace("/login");
+          return;
+        }
+        const userData = await userRes.json();
+        if (!userData?.user) {
           router.replace("/login");
           return;
         }
 
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", session.user.email!)
-          .single();
-
+        const profile = userData.user as AppUser;
         if (cancelled) return;
-
-        if (!profile) {
-          setError("Profile not found. Please log in again.");
-          setIsLoading(false);
-          return;
-        }
 
         if (profile.role_type !== "DRIVER") {
           router.replace(`/dashboard/${profile.role_type.toLowerCase()}`);
           return;
         }
 
-        setUser(profile as AppUser);
+        setUser(profile);
 
-        // Fetch eligible equipment from equipment_drivers
-        const { data: edData } = await supabase
-          .from("equipment_drivers")
-          .select("*, equipment:equipment_id(model_name, daily_rate)")
-          .eq("driver_id", profile.user_id);
-
-        if (cancelled) return;
-        setEligibleEquipment(
-          (edData as (EquipmentDriver & {
-            equipment: { model_name: string; daily_rate: number } | null;
-          })[]) || []
-        );
+        // Fetch eligible equipment
+        const eqRes = await fetch("/api/drivers/equipment");
+        if (eqRes.ok) {
+          const eqJson = await eqRes.json();
+          if (!cancelled) setEligibleEquipment(eqJson.eligibleEquipment || []);
+        }
 
         // Fetch bookings where this driver is assigned
-        const { data: bkData } = await supabase
-          .from("bookings")
-          .select("*, equipment(model_name), users:renter_id(full_name, phone)")
-          .eq("driver_id", profile.user_id)
-          .order("start_date", { ascending: false });
-
-        if (cancelled) return;
-        setAssignedBookings(
-          (bkData as (Booking & {
-            equipment: { model_name: string } | null;
-            users: { full_name: string; phone: string | null } | null;
-          })[]) || []
-        );
+        const bkRes = await fetch("/api/bookings?role=driver");
+        if (bkRes.ok) {
+          const bkJson = await bkRes.json();
+          if (!cancelled) setAssignedBookings(bkJson.bookings || []);
+        }
       } catch (err: unknown) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load driver dashboard");
@@ -124,8 +101,11 @@ export default function DriverDashboard() {
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center max-w-md">
             <p className="text-red-600 font-medium">{error}</p>
-            <Link href="/login" className="mt-4 inline-block text-sm text-emerald-700 underline">
-              Return to Login
+            <Link
+              href="/login"
+              className="mt-4 inline-block text-sm text-emerald-700 underline"
+            >
+              Back to Login
             </Link>
           </div>
         </main>
@@ -135,134 +115,135 @@ export default function DriverDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col bg-zinc-50 font-sans">
       <Navbar />
 
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-white to-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="pb-6 mb-8 border-b border-emerald-100">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold tracking-wide uppercase mb-2 border border-emerald-200">
-              Machinery Operator Portal
-            </div>
-            <h1 className="text-3xl font-extrabold text-zinc-900">
-              Welcome, {user?.full_name}
-            </h1>
-            <p className="text-sm text-zinc-600 mt-1">
-              View your certified machinery, operational assignments, and hourly rates.
-            </p>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
-                Certified Machinery Types
-              </p>
-              <p className="text-2xl font-extrabold text-zinc-900">{eligibleEquipment.length}</p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
-                Total Assignments
-              </p>
-              <p className="text-2xl font-extrabold text-emerald-700">{assignedBookings.length}</p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
-                Active Trips / Jobs
-              </p>
-              <p className="text-2xl font-extrabold text-amber-600">
-                {
-                  assignedBookings.filter((b) => b.status === "PENDING" || b.status === "CONFIRMED")
-                    .length
-                }
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Welcome Banner */}
+        <div className="bg-white rounded-2xl border border-emerald-100 p-6 sm:p-8 mb-8 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 mb-2">
+                Certified Operator
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
+                Welcome, {user?.full_name}
+              </h1>
+              <p className="text-sm text-zinc-500 mt-1">
+                Manage your machinery certifications and review your field duty assignments.
               </p>
             </div>
-          </div>
-
-          {/* Section 1: Assigned Bookings */}
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-zinc-900 mb-4">Driving & Field Assignments</h2>
-            {assignedBookings.length === 0 ? (
-              <div className="text-center py-10 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8">
-                <p className="text-zinc-600 text-sm font-medium">No current equipment booking assignments.</p>
-                <p className="text-zinc-400 text-xs mt-1">
-                  When a farmer rents certified machinery and selects driver assistance, the dispatch will appear here.
-                </p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-xs text-zinc-400 block">Active Bookings</span>
+                <span className="text-2xl font-bold text-emerald-600">
+                  {assignedBookings.length}
+                </span>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {assignedBookings.map((b) => (
-                  <div
-                    key={b.booking_id}
-                    className="p-5 rounded-2xl border border-zinc-200 bg-white shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-zinc-900">
-                          {b.equipment?.model_name ?? `Equipment #${b.equipment_id}`}
+            </div>
+          </div>
+        </div>
+
+        {/* Grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Machinery Certifications Column */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-xs">
+              <h2 className="text-lg font-bold text-zinc-900 mb-4 flex items-center justify-between">
+                <span>Eligible Machinery</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
+                  {eligibleEquipment.length} Qualified
+                </span>
+              </h2>
+
+              {eligibleEquipment.length === 0 ? (
+                <p className="text-sm text-zinc-500 italic">
+                  No machinery qualifications registered yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {eligibleEquipment.map((eq) => (
+                    <div
+                      key={eq.equipment_id}
+                      className="p-3.5 rounded-xl border border-zinc-100 bg-zinc-50/50 hover:bg-white hover:border-emerald-200 transition-all"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-sm text-zinc-800">
+                            {eq.equipment?.model_name || `Equipment #${eq.equipment_id}`}
+                          </p>
+                          <p className="text-xs text-zinc-500 mt-0.5">
+                            Certified: {eq.cert_date ? new Date(eq.cert_date).toLocaleDateString() : "Active"}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                          ₹{eq.driver_hr_rate}/hr
                         </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Assigned Bookings Column */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-xs">
+              <h2 className="text-lg font-bold text-zinc-900 mb-4 flex items-center justify-between">
+                <span>Field Operation Assignments</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
+                  {assignedBookings.length} Total
+                </span>
+              </h2>
+
+              {assignedBookings.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-zinc-100 rounded-xl">
+                  <p className="text-sm text-zinc-500">
+                    No field assignments currently booked for you.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-100">
+                  {assignedBookings.map((b) => (
+                    <div key={b.booking_id} className="py-4 first:pt-0 last:pb-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <div>
+                          <span className="text-xs font-mono font-bold text-emerald-600 mr-2">
+                            #{b.booking_id}
+                          </span>
+                          <span className="font-bold text-zinc-900 text-base">
+                            {b.equipment?.model_name || `Equipment #${b.equipment_id}`}
+                          </span>
+                        </div>
                         <BookingStatusBadge status={b.status} />
                       </div>
-                      <p className="text-xs text-zinc-500">
-                        Farmer: {b.users?.full_name} {b.users?.phone && `(${b.users.phone})`}
-                      </p>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        Dates: {b.start_date} to {b.end_date}
-                      </p>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="text-xs text-zinc-400 block uppercase font-semibold">Booking ID</span>
-                      <span className="text-sm font-mono text-zinc-600">#{b.booking_id}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-zinc-600 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                        <div>
+                          <span className="text-zinc-400 block">Renter / Farmer:</span>
+                          <span className="font-semibold text-zinc-800">
+                            {b.users?.full_name || "Anonymous Farmer"}
+                          </span>
+                          {b.users?.phone && (
+                            <span className="text-zinc-500 block">
+                              📞 {b.users.phone}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-zinc-400 block">Rental Window:</span>
+                          <span className="font-semibold text-zinc-800">
+                            {b.start_date} to {b.end_date}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Section 2: Certified Equipment & Rates */}
-          <section>
-            <h2 className="text-xl font-bold text-zinc-900 mb-4">Certified Machinery & Rate Card</h2>
-            {eligibleEquipment.length === 0 ? (
-              <div className="text-center py-10 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8">
-                <p className="text-zinc-600 text-sm font-medium">No certified machinery linked to your profile yet.</p>
-                <p className="text-zinc-400 text-xs mt-1">
-                  Equipment owners link certified drivers using the equipment drivers register.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {eligibleEquipment.map((ed) => (
-                  <div
-                    key={ed.equipment_id}
-                    className="p-5 rounded-2xl border border-zinc-200 bg-white shadow-xs flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-xs font-mono text-zinc-400">Equipment #{ed.equipment_id}</span>
-                      <h3 className="font-bold text-zinc-900 text-base">
-                        {ed.equipment?.model_name ?? "Farm Machinery"}
-                      </h3>
-                      {ed.cert_date && (
-                        <p className="text-xs text-zinc-500 mt-1">
-                          Certified on: {new Date(ed.cert_date).toLocaleDateString("en-IN")}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[11px] uppercase text-zinc-400 font-semibold block">Driver Rate</span>
-                      <span className="text-lg font-extrabold text-emerald-700">
-                        ₹{Number(ed.driver_hr_rate).toLocaleString("en-IN")} / hr
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
 

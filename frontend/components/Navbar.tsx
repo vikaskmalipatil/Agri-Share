@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import type { AppUser } from "@/lib/types";
 
 interface NavbarProps {
@@ -22,50 +21,38 @@ export default function Navbar({ activePage }: NavbarProps) {
     let cancelled = false;
 
     async function loadUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session || cancelled) {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data?.user) {
+            setUser({
+              full_name: data.user.full_name,
+              role_type: data.user.role_type,
+            });
+          }
+        }
+      } catch {
+        // DB or network offline
+      } finally {
         if (!cancelled) setLoading(false);
-        return;
-      }
-
-      // Look up the application user profile by matching email
-      const { data } = await supabase
-        .from("users")
-        .select("full_name, role_type")
-        .eq("email", session.user.email!)
-        .single();
-
-      if (!cancelled) {
-        setUser(
-          data as Pick<AppUser, "full_name" | "role_type"> | null
-        );
-        setLoading(false);
       }
     }
 
     loadUser();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        if (!cancelled) setUser(null);
-      } else {
-        if (!cancelled) loadUser();
-      }
-    });
-
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
     };
   }, []);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    setUser(null);
     router.push("/");
     router.refresh();
   }

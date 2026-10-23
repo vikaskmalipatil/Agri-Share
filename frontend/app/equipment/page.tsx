@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EquipmentStatusBadge } from "@/components/StatusBadge";
@@ -76,15 +75,10 @@ export default function EquipmentPage() {
     setErrorMessage(null);
 
     try {
-      const { data, error } = await supabase
-        .from("equipment")
-        .select(
-          "equipment_id, model_name, daily_rate, status, owner_id, type_id, equipment_types(category_name)"
-        )
-        .eq("status", "AVAILABLE");
-
-      if (error) throw new Error(error.message);
-      setAllEquipment((data as unknown as EquipmentWithType[]) || []);
+      const res = await fetch("/api/equipment?status=AVAILABLE");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load equipment list.");
+      setAllEquipment((data.equipment as unknown as EquipmentWithType[]) || []);
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error ? err.message : "Failed to load equipment list."
@@ -99,17 +93,12 @@ export default function EquipmentPage() {
 
     async function initialLoad() {
       try {
-        const { data, error } = await supabase
-          .from("equipment")
-          .select(
-            "equipment_id, model_name, daily_rate, status, owner_id, type_id, equipment_types(category_name)"
-          )
-          .eq("status", "AVAILABLE");
-
+        const res = await fetch("/api/equipment?status=AVAILABLE");
+        const data = await res.json();
         if (isCancelled) return;
-        if (error) throw new Error(error.message);
+        if (!res.ok) throw new Error(data.error || "Failed to load equipment list.");
 
-        setAllEquipment((data as unknown as EquipmentWithType[]) || []);
+        setAllEquipment((data.equipment as unknown as EquipmentWithType[]) || []);
       } catch (err: unknown) {
         if (!isCancelled) {
           setErrorMessage(

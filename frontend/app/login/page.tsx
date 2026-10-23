@@ -3,7 +3,6 @@
 import { useState, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import type { UserRole } from "@/lib/types";
@@ -31,35 +30,20 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({ email, password });
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (authError) {
-        throw new Error(authError.message);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed. Please verify credentials.");
       }
 
-      if (!authData.user) {
-        throw new Error("Login succeeded but no user was returned.");
-      }
-
-      // Fetch user profile to determine role
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("role_type")
-        .eq("email", authData.user.email!)
-        .single();
-
-      if (profileError || !profile) {
-        setError(
-          "Your account was authenticated, but no matching profile was found. " +
-            "Please contact the administrator or register a new account."
-        );
-        setIsLoading(false);
-        return;
-      }
-
+      const role = data.user?.role_type as UserRole;
       const destination =
-        redirectTo || DASHBOARD_MAP[profile.role_type as UserRole] || "/";
+        redirectTo || DASHBOARD_MAP[role] || "/";
       router.push(destination);
       router.refresh();
     } catch (err: unknown) {

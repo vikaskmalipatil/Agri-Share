@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EquipmentStatusBadge, BookingStatusBadge } from "@/components/StatusBadge";
@@ -56,73 +55,47 @@ export default function OwnerDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace("/login");
-        return;
-      }
+      // 1. Fetch current user
+      const userRes = await fetch("/api/auth/me");
+      if (!userRes.ok) { router.replace("/login"); return; }
+      const userData = await userRes.json();
+      if (!userData?.user) { router.replace("/login"); return; }
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", session.user.email!)
-        .single();
-
-      if (!profile) {
-        setError("Profile not found. Please log in again.");
-        setIsLoading(false);
-        return;
-      }
-
+      const profile = userData.user as AppUser;
       if (profile.role_type !== "OWNER") {
         router.replace(`/dashboard/${profile.role_type.toLowerCase()}`);
         return;
       }
+      setUser(profile);
 
-      setUser(profile as AppUser);
+      // 2. Fetch categories
+      const catRes = await fetch("/api/categories");
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        setCategories(catData.categories || []);
+      }
 
-      // Fetch categories
-      const { data: typesData } = await supabase
-        .from("equipment_types")
-        .select("*");
-      setCategories((typesData as EquipmentType[]) || []);
+      // 3. Fetch owned equipment
+      const equipRes = await fetch(`/api/equipment?ownerId=${profile.user_id}&status=ALL`);
+      let ownedEquip: (Equipment & { equipment_types: EquipmentType | null })[] = [];
+      if (equipRes.ok) {
+        const equipJson = await equipRes.json();
+        ownedEquip = equipJson.equipment || [];
+        setEquipmentList(ownedEquip);
+      }
 
-      // Fetch owned equipment
-      const { data: equipData } = await supabase
-        .from("equipment")
-        .select("*, equipment_types(type_id, category_name, description)")
-        .eq("owner_id", profile.user_id)
-        .order("equipment_id", { ascending: false });
+      // 4. Fetch bookings for owned equipment
+      const bkRes = await fetch("/api/bookings?role=owner");
+      if (bkRes.ok) {
+        const bkJson = await bkRes.json();
+        setBookings(bkJson.bookings || []);
+      }
 
-      const ownedEquip = (equipData as (Equipment & { equipment_types: EquipmentType | null })[]) || [];
-      setEquipmentList(ownedEquip);
-
-      // Fetch bookings for owned equipment
-      if (ownedEquip.length > 0) {
-        const equipIds = ownedEquip.map((e) => e.equipment_id);
-        const { data: bData } = await supabase
-          .from("bookings")
-          .select("*, equipment(model_name), users:renter_id(full_name, phone, email)")
-          .in("equipment_id", equipIds)
-          .order("booking_id", { ascending: false });
-
-        setBookings(
-          (bData as (Booking & {
-            equipment: { model_name: string } | null;
-            users: { full_name: string; phone: string | null; email: string } | null;
-          })[]) || []
-        );
-
-        // Fetch maintenance logs
-        const { data: mData } = await supabase
-          .from("maintenance_logs")
-          .select("*")
-          .in("equipment_id", equipIds)
-          .order("service_date", { ascending: false });
-
-        setMaintenanceLogs((mData as MaintenanceLog[]) || []);
+      // 5. Fetch maintenance logs
+      const maintRes = await fetch("/api/maintenance");
+      if (maintRes.ok) {
+        const maintJson = await maintRes.json();
+        setMaintenanceLogs(maintJson.logs || []);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load owner data");
@@ -134,81 +107,43 @@ export default function OwnerDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    async function initialLoad() {
+    async function initialFetch() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", session.user.email!)
-          .single();
-
+        const userRes = await fetch("/api/auth/me");
         if (cancelled) return;
+        if (!userRes.ok) { router.replace("/login"); return; }
+        const userData = await userRes.json();
+        if (!userData?.user) { router.replace("/login"); return; }
 
-        if (!profile) {
-          setError("Profile not found. Please log in again.");
-          setIsLoading(false);
-          return;
-        }
-
+        const profile = userData.user as AppUser;
         if (profile.role_type !== "OWNER") {
           router.replace(`/dashboard/${profile.role_type.toLowerCase()}`);
           return;
         }
+        setUser(profile);
 
-        setUser(profile as AppUser);
+        const catRes = await fetch("/api/categories");
+        if (catRes.ok && !cancelled) {
+          const catData = await catRes.json();
+          setCategories(catData.categories || []);
+        }
 
-        // Fetch categories
-        const { data: typesData } = await supabase
-          .from("equipment_types")
-          .select("*");
-        if (cancelled) return;
-        setCategories((typesData as EquipmentType[]) || []);
+        const equipRes = await fetch(`/api/equipment?ownerId=${profile.user_id}&status=ALL`);
+        if (equipRes.ok && !cancelled) {
+          const equipJson = await equipRes.json();
+          setEquipmentList(equipJson.equipment || []);
+        }
 
-        // Fetch owned equipment
-        const { data: equipData } = await supabase
-          .from("equipment")
-          .select("*, equipment_types(type_id, category_name, description)")
-          .eq("owner_id", profile.user_id)
-          .order("equipment_id", { ascending: false });
+        const bkRes = await fetch("/api/bookings?role=owner");
+        if (bkRes.ok && !cancelled) {
+          const bkJson = await bkRes.json();
+          setBookings(bkJson.bookings || []);
+        }
 
-        if (cancelled) return;
-        const ownedEquip = (equipData as (Equipment & { equipment_types: EquipmentType | null })[]) || [];
-        setEquipmentList(ownedEquip);
-
-        // Fetch bookings for owned equipment
-        if (ownedEquip.length > 0) {
-          const equipIds = ownedEquip.map((e) => e.equipment_id);
-          const { data: bData } = await supabase
-            .from("bookings")
-            .select("*, equipment(model_name), users:renter_id(full_name, phone, email)")
-            .in("equipment_id", equipIds)
-            .order("booking_id", { ascending: false });
-
-          if (cancelled) return;
-          setBookings(
-            (bData as (Booking & {
-              equipment: { model_name: string } | null;
-              users: { full_name: string; phone: string | null; email: string } | null;
-            })[]) || []
-          );
-
-          // Fetch maintenance logs
-          const { data: mData } = await supabase
-            .from("maintenance_logs")
-            .select("*")
-            .in("equipment_id", equipIds)
-            .order("service_date", { ascending: false });
-
-          if (cancelled) return;
-          setMaintenanceLogs((mData as MaintenanceLog[]) || []);
+        const maintRes = await fetch("/api/maintenance");
+        if (maintRes.ok && !cancelled) {
+          const maintJson = await maintRes.json();
+          setMaintenanceLogs(maintJson.logs || []);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -221,7 +156,7 @@ export default function OwnerDashboard() {
       }
     }
 
-    initialLoad();
+    initialFetch();
 
     return () => {
       cancelled = true;
@@ -231,12 +166,15 @@ export default function OwnerDashboard() {
   // Handle Equipment Status Change
   async function handleStatusChange(equipmentId: number, newStatus: EquipmentStatus) {
     try {
-      const { error: updateErr } = await supabase
-        .from("equipment")
-        .update({ status: newStatus })
-        .eq("equipment_id", equipmentId);
-
-      if (updateErr) throw updateErr;
+      const res = await fetch(`/api/equipment/${equipmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to update status");
+      }
 
       setEquipmentList((prev) =>
         prev.map((e) => (e.equipment_id === equipmentId ? { ...e, status: newStatus } : e))
@@ -249,12 +187,15 @@ export default function OwnerDashboard() {
   // Handle Booking Status Update (Confirm / Reject)
   async function handleBookingStatus(bookingId: number, newStatus: BookingStatus) {
     try {
-      const { error: updateErr } = await supabase
-        .from("bookings")
-        .update({ status: newStatus })
-        .eq("booking_id", bookingId);
-
-      if (updateErr) throw updateErr;
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId, status: newStatus }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to update booking status");
+      }
 
       setBookings((prev) =>
         prev.map((b) => (b.booking_id === bookingId ? { ...b, status: newStatus } : b))
@@ -273,15 +214,20 @@ export default function OwnerDashboard() {
     setFormMessage(null);
 
     try {
-      const { error: insertErr } = await supabase.from("equipment").insert({
-        owner_id: user.user_id,
-        type_id: Number(newTypeId),
-        model_name: newModelName.trim(),
-        daily_rate: Number(newDailyRate),
-        status: "AVAILABLE",
+      const res = await fetch("/api/equipment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model_name: newModelName.trim(),
+          type_id: Number(newTypeId),
+          daily_rate: Number(newDailyRate),
+        }),
       });
 
-      if (insertErr) throw insertErr;
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to add equipment");
+      }
 
       setFormMessage({ type: "success", text: "Equipment successfully added to catalog!" });
       setNewModelName("");
@@ -309,18 +255,22 @@ export default function OwnerDashboard() {
 
     setIsSubmitting(true);
     try {
-      const { error: insertErr } = await supabase.from("maintenance_logs").insert({
-        equipment_id: selectedEquipId,
-        service_date: new Date().toISOString().split("T")[0],
-        service_type: maintType.trim(),
-        cost: Number(maintCost),
-        description: maintDesc.trim() || null,
+      const res = await fetch("/api/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipment_id: selectedEquipId,
+          service_type: maintType.trim(),
+          cost: Number(maintCost),
+          description: maintDesc.trim() || null,
+          set_maintenance_status: true,
+        }),
       });
 
-      if (insertErr) throw insertErr;
-
-      // Optionally set equipment status to MAINTENANCE
-      await handleStatusChange(selectedEquipId, "MAINTENANCE");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to add maintenance log");
+      }
 
       setShowMaintModal(false);
       setMaintType("");

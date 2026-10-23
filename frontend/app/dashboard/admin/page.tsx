@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -41,48 +40,23 @@ export default function AdminDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace("/login");
-        return;
+      const res = await fetch("/api/admin/data");
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          router.replace("/login");
+          return;
+        }
+        const errJson = await res.json();
+        throw new Error(errJson.error || "Failed to load admin data");
       }
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", session.user.email!)
-        .single();
-
-      if (!profile) {
-        setError("User profile not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (profile.role_type !== "ADMIN") {
-        setError("Unauthorized access. Admin privileges required.");
-        setIsLoading(false);
-        return;
-      }
-
-      setCurrentUser(profile as AppUser);
-
-      // Load all system data
-      const [uRes, eRes, bRes, pRes, rRes] = await Promise.all([
-        supabase.from("users").select("*").order("created_at", { ascending: false }),
-        supabase.from("equipment").select("*").order("equipment_id", { ascending: false }),
-        supabase.from("bookings").select("*").order("booking_id", { ascending: false }),
-        supabase.from("payments").select("*").order("transaction_time", { ascending: false }),
-        supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-      ]);
-
-      setUsers((uRes.data as AppUser[]) || []);
-      setEquipment((eRes.data as Equipment[]) || []);
-      setBookings((bRes.data as Booking[]) || []);
-      setPayments((pRes.data as Payment[]) || []);
-      setReviews((rRes.data as Review[]) || []);
+      const data = await res.json();
+      setCurrentUser(data.currentUser);
+      setUsers(data.users || []);
+      setEquipment(data.equipment || []);
+      setBookings(data.bookings || []);
+      setPayments(data.payments || []);
+      setReviews(data.reviews || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load admin data");
     } finally {
@@ -93,54 +67,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    async function initialLoad() {
+    async function initialFetch() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", session.user.email!)
-          .single();
-
+        const res = await fetch("/api/admin/data");
         if (cancelled) return;
-
-        if (!profile) {
-          setError("User profile not found.");
-          setIsLoading(false);
-          return;
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            router.replace("/login");
+            return;
+          }
+          const errJson = await res.json();
+          throw new Error(errJson.error || "Failed to load admin data");
         }
 
-        if (profile.role_type !== "ADMIN") {
-          setError("Unauthorized access. Admin privileges required.");
-          setIsLoading(false);
-          return;
-        }
-
-        setCurrentUser(profile as AppUser);
-
-        // Load all system data
-        const [uRes, eRes, bRes, pRes, rRes] = await Promise.all([
-          supabase.from("users").select("*").order("created_at", { ascending: false }),
-          supabase.from("equipment").select("*").order("equipment_id", { ascending: false }),
-          supabase.from("bookings").select("*").order("booking_id", { ascending: false }),
-          supabase.from("payments").select("*").order("transaction_time", { ascending: false }),
-          supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-        ]);
-
+        const data = await res.json();
         if (cancelled) return;
-
-        setUsers((uRes.data as AppUser[]) || []);
-        setEquipment((eRes.data as Equipment[]) || []);
-        setBookings((bRes.data as Booking[]) || []);
-        setPayments((pRes.data as Payment[]) || []);
-        setReviews((rRes.data as Review[]) || []);
+        setCurrentUser(data.currentUser);
+        setUsers(data.users || []);
+        setEquipment(data.equipment || []);
+        setBookings(data.bookings || []);
+        setPayments(data.payments || []);
+        setReviews(data.reviews || []);
       } catch (err: unknown) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load admin data");
@@ -152,7 +99,7 @@ export default function AdminDashboard() {
       }
     }
 
-    initialLoad();
+    initialFetch();
 
     return () => {
       cancelled = true;

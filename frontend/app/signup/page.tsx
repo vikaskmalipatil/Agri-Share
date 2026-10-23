@@ -3,7 +3,6 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import type { UserRole } from "@/lib/types";
@@ -62,58 +61,27 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // 1. Create Supabase Auth account
-      const { data: authData, error: authError } =
-        await supabase.auth.signUp({
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: form.full_name,
           email: form.email,
           password: form.password,
-        });
+          phone: form.phone || null,
+          address: form.address || null,
+          role_type: form.role_type,
+        }),
+      });
 
-      if (authError) {
-        throw new Error(authError.message);
-      }
-
-      if (!authData.user) {
-        throw new Error(
-          "Account creation succeeded but no user was returned."
-        );
-      }
-
-      // 2. Insert the application profile into public.users
-      //    We match auth user via email (auth_user_id column added by migration).
-      //    If the migration has NOT been applied yet, we insert without auth_user_id.
-      const profilePayload: Record<string, unknown> = {
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone || null,
-        address: form.address || null,
-        role_type: form.role_type,
-      };
-
-      const { error: profileError } = await supabase
-        .from("users")
-        .insert(profilePayload);
-
-      if (profileError) {
-        // Auth account was created but profile insert failed.
-        // This can happen if RLS blocks the insert (migration + policy needed).
-        console.error("Profile insert error:", profileError);
-        setSuccess(true); // Auth account exists; user should run migrations
-        setError(
-          "Your authentication account was created, but the profile could not be saved. " +
-            "Please ask the administrator to run the required SQL migrations, then log in."
-        );
-        setIsLoading(false);
-        return;
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed. Please try again.");
       }
 
       setSuccess(true);
-
-      // If email confirmation is disabled, redirect immediately
-      if (authData.session) {
-        router.push(DASHBOARD_MAP[form.role_type]);
-        router.refresh();
-      }
+      router.push(DASHBOARD_MAP[form.role_type]);
+      router.refresh();
     } catch (err: unknown) {
       setError(
         err instanceof Error
