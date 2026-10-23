@@ -143,16 +143,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { equipment_id, driver_id, start_date, end_date, total_cost } = body;
 
-    if (!equipment_id || !start_date || !end_date || total_cost === undefined) {
+    if (!equipment_id || !start_date || !end_date) {
       return NextResponse.json(
-        { error: 'Equipment ID, start date, end date, and total cost are required.' },
+        { error: 'Equipment ID, start date, and end date are required.' },
         { status: 400 }
       );
     }
 
     const equipId = Number(equipment_id);
     const driverId = driver_id ? Number(driver_id) : null;
-    const costNum = Number(total_cost);
 
     if (new Date(end_date) < new Date(start_date)) {
       return NextResponse.json(
@@ -161,15 +160,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try executing stored procedure create_booking_safe
+    // Call the stored procedure create_booking
+    // The procedure validates dates, checks for overlaps,
+    // calculates total_cost from the DB rate, and inserts the booking + payment.
+    // OUT parameters: @out_bid (new booking_id), @out_msg (result message)
     try {
-      await query('SET @out_bid = NULL, @out_code = NULL, @out_msg = NULL');
+      await query('SET @out_bid = NULL, @out_msg = NULL');
       await query(
-        'CALL create_booking_safe(?, ?, ?, ?, ?, ?, @out_bid, @out_code, @out_msg)',
-        [session.user_id, equipId, driverId, start_date, end_date, costNum]
+        'CALL create_booking(?, ?, ?, ?, ?, @out_bid, @out_msg)',
+        [session.user_id, equipId, driverId ?? 0, start_date, end_date]
       );
       const outRows = await query<RowDataPacket[]>(
-        'SELECT @out_bid AS booking_id, @out_code AS status_code, @out_msg AS status_message'
+        'SELECT @out_bid AS booking_id, @out_msg AS status_message'
       );
 
       if (outRows.length > 0 && outRows[0].booking_id) {
@@ -178,14 +180,27 @@ export async function POST(request: NextRequest) {
           booking_id: outRows[0].booking_id,
           message: outRows[0].status_message || 'Booking created successfully.',
         });
-      } else if (outRows.length > 0 && outRows[0].status_code >= 400) {
+      } else if (outRows.length > 0 && outRows[0].status_message?.startsWith('ERROR')) {
         return NextResponse.json(
-          { error: outRows[0].status_message || 'Booking conflict or error.' },
-          { status: outRows[0].status_code }
+          { error: outRows[0].status_message },
+          { status: 409 }
         );
       }
     } catch {
-      // If stored procedure is not yet created, execute direct safe transaction
+      // Fallback: if stored procedure is not yet created, use a direct insert.
+      // Calculate cost from the equipment's daily_rate in the database.
+      const equipRows = await query<RowDataPacket[]>(
+        'SELECT daily_rate FROM equipment WHERE equipment_id = ?',
+        [equipId]
+      );
+      const dailyRate = equipRows.length > 0 ? Number(equipRows[0].daily_rate) : 0;
+      const rentalDays =
+        Math.ceil(
+          (new Date(end_date).getTime() - new Date(start_date).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1;
+      const computedCost = dailyRate * rentalDays;
+
       const conflicts = await query<RowDataPacket[]>(
         `SELECT booking_id FROM bookings
          WHERE equipment_id = ?
@@ -204,16 +219,15 @@ export async function POST(request: NextRequest) {
       const insertRes = await query<ResultSetHeader>(
         `INSERT INTO bookings (renter_id, equipment_id, driver_id, start_date, end_date, total_cost, status)
          VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
-        [session.user_id, equipId, driverId, start_date, end_date, costNum]
+        [session.user_id, equipId, driverId, start_date, end_date, computedCost]
       );
 
       const bookingId = insertRes.insertId;
 
-      // Also create pending payment
       await query(
         `INSERT INTO payments (booking_id, amount, payment_method, payment_status)
          VALUES (?, ?, 'UPI', 'PENDING')`,
-        [bookingId, costNum]
+        [bookingId, computedCost]
       );
 
       return NextResponse.json({

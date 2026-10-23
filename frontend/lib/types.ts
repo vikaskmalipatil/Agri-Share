@@ -1,6 +1,6 @@
 // ============================================================
 // Agri-Share – Shared TypeScript type definitions
-// Mirrors the actual public schema in Supabase PostgreSQL.
+// Mirrors the MySQL 8.0 schema.
 // ============================================================
 
 export type UserRole = 'FARMER' | 'OWNER' | 'DRIVER' | 'ADMIN';
@@ -19,8 +19,6 @@ export interface AppUser {
   address: string | null;
   created_at: string;
   password_hash?: string;
-  /** Legacy field for Supabase compatibility if needed */
-  auth_user_id?: string | null;
 }
 
 // ── public.equipment_types ──────────────────────────────────
