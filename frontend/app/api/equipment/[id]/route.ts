@@ -1,32 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-
-interface EquipmentDetailRow extends RowDataPacket {
-  equipment_id: number;
-  owner_id: number;
-  type_id: number;
-  model_name: string;
-  daily_rate: string | number;
-  status: 'AVAILABLE' | 'RENTED' | 'MAINTENANCE';
-  created_at: string;
-  category_name: string;
-  category_description: string | null;
-  owner_name: string;
-  owner_phone: string | null;
-  owner_email: string;
-}
-
-interface DriverRow extends RowDataPacket {
-  equipment_id: number;
-  driver_id: number;
-  driver_hr_rate: string | number;
-  cert_date: string;
-  driver_name: string;
-  driver_phone: string | null;
-  driver_email: string;
-}
 
 export async function GET(
   _request: NextRequest,
@@ -40,34 +14,31 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid equipment ID.' }, { status: 400 });
     }
 
-    // 1. Fetch equipment record with owner and type
-    const equipRows = await query<EquipmentDetailRow[]>(
-      `SELECT
-        e.equipment_id,
-        e.owner_id,
-        e.type_id,
-        e.model_name,
-        e.daily_rate,
-        e.status,
-        e.created_at,
-        t.category_name,
-        t.description AS category_description,
-        u.full_name AS owner_name,
-        u.phone AS owner_phone,
-        u.email AS owner_email
-      FROM equipment e
-      JOIN equipment_types t ON e.type_id = t.type_id
-      JOIN users u ON e.owner_id = u.user_id
-      WHERE e.equipment_id = ?
-      LIMIT 1`,
-      [equipId]
-    );
+    const supabase = getSupabaseAdmin();
 
-    if (equipRows.length === 0) {
+    // 1. Fetch equipment record with owner and type
+    const { data: row, error } = await supabase
+      .from('equipment')
+      .select(`
+        equipment_id,
+        owner_id,
+        type_id,
+        model_name,
+        daily_rate,
+        status,
+        equipment_types ( category_name, description ),
+        users!fk_equipment_owner ( full_name, phone, email )
+      `)
+      .eq('equipment_id', equipId)
+      .single();
+
+    if (error || !row) {
       return NextResponse.json({ error: 'Equipment not found.' }, { status: 404 });
     }
 
-    const row = equipRows[0];
+    const eqType = row.equipment_types as unknown as Record<string, unknown> | null;
+    const owner = row.users as unknown as Record<string, unknown> | null;
+
     const equipment = {
       equipment_id: row.equipment_id,
       owner_id: row.owner_id,
@@ -75,45 +46,40 @@ export async function GET(
       model_name: row.model_name,
       daily_rate: Number(row.daily_rate),
       status: row.status,
-      created_at: row.created_at,
-      equipment_types: {
-        category_name: row.category_name,
-        description: row.category_description,
-      },
-      users: {
-        full_name: row.owner_name,
-        phone: row.owner_phone,
-        email: row.owner_email,
-      },
+      equipment_types: eqType
+        ? { category_name: eqType.category_name, description: eqType.description }
+        : null,
+      users: owner
+        ? { full_name: owner.full_name, phone: owner.phone, email: owner.email }
+        : null,
     };
 
     // 2. Fetch certified drivers for this equipment
-    const driverRows = await query<DriverRow[]>(
-      `SELECT
-        ed.equipment_id,
-        ed.driver_id,
-        ed.driver_hr_rate,
-        ed.cert_date,
-        u.full_name AS driver_name,
-        u.phone AS driver_phone,
-        u.email AS driver_email
-      FROM equipment_drivers ed
-      JOIN users u ON ed.driver_id = u.user_id
-      WHERE ed.equipment_id = ?`,
-      [equipId]
-    );
+    const { data: driverRows, error: driverErr } = await supabase
+      .from('equipment_drivers')
+      .select(`
+        equipment_id,
+        driver_id,
+        driver_hr_rate,
+        cert_date,
+        users!fk_eqd_driver ( full_name, phone, email )
+      `)
+      .eq('equipment_id', equipId);
 
-    const drivers = driverRows.map((d) => ({
-      equipment_id: d.equipment_id,
-      driver_id: d.driver_id,
-      driver_hr_rate: Number(d.driver_hr_rate),
-      cert_date: d.cert_date,
-      users: {
-        full_name: d.driver_name,
-        phone: d.driver_phone,
-        email: d.driver_email,
-      },
-    }));
+    if (driverErr) throw new Error(driverErr.message);
+
+    const drivers = (driverRows || []).map((d: Record<string, unknown>) => {
+      const driverUser = d.users as Record<string, unknown> | null;
+      return {
+        equipment_id: d.equipment_id,
+        driver_id: d.driver_id,
+        driver_hr_rate: Number(d.driver_hr_rate),
+        cert_date: d.cert_date,
+        users: driverUser
+          ? { full_name: driverUser.full_name, phone: driverUser.phone, email: driverUser.email }
+          : null,
+      };
+    });
 
     return NextResponse.json({ equipment, drivers });
   } catch (error: unknown) {
@@ -144,11 +110,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status value.' }, { status: 400 });
     }
 
-    // Update status
-    await query<ResultSetHeader>(
-      'UPDATE equipment SET status = ? WHERE equipment_id = ?',
-      [status, equipId]
-    );
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('equipment')
+      .update({ status })
+      .eq('equipment_id', equipId);
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({ success: true, message: 'Equipment status updated.' });
   } catch (error: unknown) {

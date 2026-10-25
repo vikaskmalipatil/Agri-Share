@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-
-interface PaymentRow extends RowDataPacket {
-  payment_id: number;
-  booking_id: number;
-  amount: string | number;
-  payment_method: string;
-  payment_status: string;
-  transaction_time: string;
-  renter_id: number;
-  equipment_id: number;
-  model_name: string;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,53 +12,198 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get('bookingId');
 
-    const conditions: string[] = [];
-    const params: (string | number | boolean | null)[] = [];
+    const supabase = getSupabaseAdmin();
 
     if (bookingId) {
-      conditions.push('p.booking_id = ?');
-      params.push(Number(bookingId));
-    } else if (session.role_type === 'FARMER') {
-      conditions.push('b.renter_id = ?');
-      params.push(session.user_id);
-    } else if (session.role_type === 'OWNER') {
-      conditions.push('e.owner_id = ?');
-      params.push(session.user_id);
+      // Filter by specific booking
+      const { data: rows, error } = await supabase
+        .from('payments')
+        .select(`
+          payment_id,
+          booking_id,
+          amount,
+          payment_method,
+          payment_status,
+          transaction_time,
+          bookings!fk_payment_booking (
+            renter_id,
+            equipment_id,
+            equipment!fk_booking_equipment ( model_name )
+          )
+        `)
+        .eq('booking_id', Number(bookingId))
+        .order('payment_id', { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      const payments = (rows || []).map((r: Record<string, unknown>) => {
+        const booking = r.bookings as Record<string, unknown> | null;
+        const equip = booking?.equipment as Record<string, unknown> | null;
+        return {
+          payment_id: r.payment_id,
+          booking_id: r.booking_id,
+          amount: Number(r.amount),
+          payment_method: r.payment_method,
+          payment_status: r.payment_status,
+          transaction_time: r.transaction_time,
+          model_name: equip?.model_name || null,
+        };
+      });
+
+      return NextResponse.json({ payments });
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // Role-based filtering
+    if (session.role_type === 'FARMER') {
+      // Get farmer's booking IDs first
+      const { data: farmerBookings } = await supabase
+        .from('bookings')
+        .select('booking_id')
+        .eq('renter_id', session.user_id);
 
-    const sql = `
-      SELECT
-        p.payment_id,
-        p.booking_id,
-        p.amount,
-        p.payment_method,
-        p.payment_status,
-        p.transaction_time,
-        b.renter_id,
-        b.equipment_id,
-        e.model_name
-      FROM payments p
-      JOIN bookings b ON p.booking_id = b.booking_id
-      JOIN equipment e ON b.equipment_id = e.equipment_id
-      ${whereClause}
-      ORDER BY p.payment_id DESC
-    `;
+      const bookingIds = (farmerBookings || []).map(
+        (b: Record<string, unknown>) => b.booking_id as number
+      );
 
-    const rows = await query<PaymentRow[]>(sql, params);
+      if (bookingIds.length === 0) {
+        return NextResponse.json({ payments: [] });
+      }
 
-    const payments = rows.map((r) => ({
-      payment_id: r.payment_id,
-      booking_id: r.booking_id,
-      amount: Number(r.amount),
-      payment_method: r.payment_method,
-      payment_status: r.payment_status,
-      transaction_time: r.transaction_time,
-      model_name: r.model_name,
-    }));
+      const { data: rows, error } = await supabase
+        .from('payments')
+        .select(`
+          payment_id,
+          booking_id,
+          amount,
+          payment_method,
+          payment_status,
+          transaction_time,
+          bookings!fk_payment_booking (
+            renter_id,
+            equipment_id,
+            equipment!fk_booking_equipment ( model_name )
+          )
+        `)
+        .in('booking_id', bookingIds)
+        .order('payment_id', { ascending: false });
 
-    return NextResponse.json({ payments });
+      if (error) throw new Error(error.message);
+
+      const payments = (rows || []).map((r: Record<string, unknown>) => {
+        const booking = r.bookings as Record<string, unknown> | null;
+        const equip = booking?.equipment as Record<string, unknown> | null;
+        return {
+          payment_id: r.payment_id,
+          booking_id: r.booking_id,
+          amount: Number(r.amount),
+          payment_method: r.payment_method,
+          payment_status: r.payment_status,
+          transaction_time: r.transaction_time,
+          model_name: equip?.model_name || null,
+        };
+      });
+
+      return NextResponse.json({ payments });
+    } else if (session.role_type === 'OWNER') {
+      // Get owner's equipment IDs, then bookings, then payments
+      const { data: ownerEquip } = await supabase
+        .from('equipment')
+        .select('equipment_id')
+        .eq('owner_id', session.user_id);
+
+      const equipIds = (ownerEquip || []).map(
+        (e: Record<string, unknown>) => e.equipment_id as number
+      );
+
+      if (equipIds.length === 0) {
+        return NextResponse.json({ payments: [] });
+      }
+
+      const { data: ownerBookings } = await supabase
+        .from('bookings')
+        .select('booking_id')
+        .in('equipment_id', equipIds);
+
+      const bookingIds = (ownerBookings || []).map(
+        (b: Record<string, unknown>) => b.booking_id as number
+      );
+
+      if (bookingIds.length === 0) {
+        return NextResponse.json({ payments: [] });
+      }
+
+      const { data: rows, error } = await supabase
+        .from('payments')
+        .select(`
+          payment_id,
+          booking_id,
+          amount,
+          payment_method,
+          payment_status,
+          transaction_time,
+          bookings!fk_payment_booking (
+            renter_id,
+            equipment_id,
+            equipment!fk_booking_equipment ( model_name )
+          )
+        `)
+        .in('booking_id', bookingIds)
+        .order('payment_id', { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      const payments = (rows || []).map((r: Record<string, unknown>) => {
+        const booking = r.bookings as Record<string, unknown> | null;
+        const equip = booking?.equipment as Record<string, unknown> | null;
+        return {
+          payment_id: r.payment_id,
+          booking_id: r.booking_id,
+          amount: Number(r.amount),
+          payment_method: r.payment_method,
+          payment_status: r.payment_status,
+          transaction_time: r.transaction_time,
+          model_name: equip?.model_name || null,
+        };
+      });
+
+      return NextResponse.json({ payments });
+    } else {
+      // ADMIN or others: all payments
+      const { data: rows, error } = await supabase
+        .from('payments')
+        .select(`
+          payment_id,
+          booking_id,
+          amount,
+          payment_method,
+          payment_status,
+          transaction_time,
+          bookings!fk_payment_booking (
+            renter_id,
+            equipment_id,
+            equipment!fk_booking_equipment ( model_name )
+          )
+        `)
+        .order('payment_id', { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      const payments = (rows || []).map((r: Record<string, unknown>) => {
+        const booking = r.bookings as Record<string, unknown> | null;
+        const equip = booking?.equipment as Record<string, unknown> | null;
+        return {
+          payment_id: r.payment_id,
+          booking_id: r.booking_id,
+          amount: Number(r.amount),
+          payment_method: r.payment_method,
+          payment_status: r.payment_status,
+          transaction_time: r.transaction_time,
+          model_name: equip?.model_name || null,
+        };
+      });
+
+      return NextResponse.json({ payments });
+    }
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json(
@@ -102,15 +234,24 @@ export async function POST(request: NextRequest) {
       ? payment_method
       : 'UPI';
 
-    const result = await query<ResultSetHeader>(
-      `INSERT INTO payments (booking_id, amount, payment_method, payment_status)
-       VALUES (?, ?, ?, 'SUCCESSFUL')`,
-      [Number(booking_id), Number(amount), method]
-    );
+    const supabase = getSupabaseAdmin();
+
+    const { data: newPayment, error } = await supabase
+      .from('payments')
+      .insert({
+        booking_id: Number(booking_id),
+        amount: Number(amount),
+        payment_method: method,
+        payment_status: 'SUCCESSFUL',
+      })
+      .select('payment_id')
+      .single();
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({
       success: true,
-      payment_id: result.insertId,
+      payment_id: newPayment?.payment_id,
       message: 'Payment recorded successfully.',
     });
   } catch (error: unknown) {

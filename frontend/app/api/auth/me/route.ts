@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { query } from '@/lib/db';
-import type { AppUser } from '@/lib/types';
-import type { RowDataPacket } from 'mysql2';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -11,17 +9,18 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
-    // Refresh user state from database
-    const rows = await query<(RowDataPacket & AppUser)[]>(
-      'SELECT user_id, full_name, email, role_type, phone, address, created_at FROM users WHERE user_id = ? LIMIT 1',
-      [session.user_id]
-    );
+    const supabase = getSupabaseAdmin();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('user_id, full_name, email, role_type, phone, address, created_at')
+      .eq('user_id', session.user_id)
+      .single();
 
-    if (rows.length === 0) {
+    if (error || !user) {
       return NextResponse.json({ user: null });
     }
 
-    return NextResponse.json({ user: rows[0] });
+    return NextResponse.json({ user });
   } catch {
     // If DB is temporarily disconnected, fall back to session cookie info
     const session = await getSession();

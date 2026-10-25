@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Supabase Setup
+
+The frontend API routes use Supabase. Create a Supabase project, then run `../database/supabase_schema.sql` and `../database/supabase_seeds.sql` in its SQL Editor.
+
+Copy `.env.example` to `.env.local` and set the values from **Project Settings → API**:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SESSION_SECRET=replace-with-a-long-random-secret
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is a server-only secret with elevated database access. Never expose it in browser code or commit `.env.local`; replace all example values with your own project values. After changing `.env.local`, restart the dev server.
+
 ## Getting Started
 
 First, run the development server:

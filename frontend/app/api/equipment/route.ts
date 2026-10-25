@@ -1,22 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-
-interface EquipmentRow extends RowDataPacket {
-  equipment_id: number;
-  owner_id: number;
-  type_id: number;
-  model_name: string;
-  daily_rate: string | number;
-  status: 'AVAILABLE' | 'RENTED' | 'MAINTENANCE';
-  created_at: string;
-  category_name: string;
-  category_description: string | null;
-  owner_name: string;
-  owner_phone: string | null;
-  owner_email: string;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,84 +11,93 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const ownerId = searchParams.get('ownerId');
 
-    const conditions: string[] = [];
-    const params: (string | number | boolean | null)[] = [];
+    const supabase = getSupabaseAdmin();
 
-    // Filter by status (default to AVAILABLE for customer catalog, or 'ALL')
+    // Build the query with Supabase's select + join syntax
+    // equipment_types!inner(...) and users!fk_equipment_owner(...)
+    let q = supabase
+      .from('equipment')
+      .select(`
+        equipment_id,
+        owner_id,
+        type_id,
+        model_name,
+        daily_rate,
+        status,
+        equipment_types ( type_id, category_name, description ),
+        users!fk_equipment_owner ( full_name, phone, email )
+      `)
+      .order('equipment_id', { ascending: false });
+
+    // Filter by status
     if (status && status !== 'ALL') {
-      conditions.push('e.status = ?');
-      params.push(status);
+      q = q.eq('status', status);
     } else if (!status && !ownerId) {
       // Default catalog view: only AVAILABLE machines
-      conditions.push('e.status = "AVAILABLE"');
+      q = q.eq('status', 'AVAILABLE');
     }
 
     if (ownerId) {
-      conditions.push('e.owner_id = ?');
-      params.push(Number(ownerId));
-    }
-
-    if (category && category !== 'ALL') {
-      conditions.push('t.category_name = ?');
-      params.push(category);
+      q = q.eq('owner_id', Number(ownerId));
     }
 
     if (maxPrice && !isNaN(Number(maxPrice))) {
-      conditions.push('e.daily_rate <= ?');
-      params.push(Number(maxPrice));
+      q = q.lte('daily_rate', Number(maxPrice));
     }
 
     if (search && search.trim()) {
-      conditions.push('(e.model_name LIKE ? OR t.category_name LIKE ?)');
       const term = `%${search.trim()}%`;
-      params.push(term, term);
+      q = q.or(`model_name.ilike.${term}`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
 
-    const sql = `
-      SELECT
-        e.equipment_id,
-        e.owner_id,
-        e.type_id,
-        e.model_name,
-        e.daily_rate,
-        e.status,
-        e.created_at,
-        t.category_name,
-        t.description AS category_description,
-        u.full_name AS owner_name,
-        u.phone AS owner_phone,
-        u.email AS owner_email
-      FROM equipment e
-      JOIN equipment_types t ON e.type_id = t.type_id
-      JOIN users u ON e.owner_id = u.user_id
-      ${whereClause}
-      ORDER BY e.equipment_id DESC
-    `;
-
-    const rows = await query<EquipmentRow[]>(sql, params);
-
-    // Format output with joined relationship structure
-    const equipment = rows.map((r) => ({
-      equipment_id: r.equipment_id,
-      owner_id: r.owner_id,
-      type_id: r.type_id,
-      model_name: r.model_name,
-      daily_rate: Number(r.daily_rate),
-      status: r.status,
-      created_at: r.created_at,
-      equipment_types: {
+    // Filter by category name in-memory if requested
+    // (Supabase doesn't easily filter by joined table column in .or())
+    let equipment = (rows || []).map((r: Record<string, unknown>) => {
+      const eqType = r.equipment_types as Record<string, unknown> | null;
+      const owner = r.users as Record<string, unknown> | null;
+      return {
+        equipment_id: r.equipment_id,
+        owner_id: r.owner_id,
         type_id: r.type_id,
-        category_name: r.category_name,
-        description: r.category_description,
-      },
-      users: {
-        full_name: r.owner_name,
-        phone: r.owner_phone,
-        email: r.owner_email,
-      },
-    }));
+        model_name: r.model_name,
+        daily_rate: Number(r.daily_rate),
+        status: r.status,
+        equipment_types: eqType
+          ? {
+              type_id: eqType.type_id,
+              category_name: eqType.category_name,
+              description: eqType.description,
+            }
+          : null,
+        users: owner
+          ? {
+              full_name: owner.full_name,
+              phone: owner.phone,
+              email: owner.email,
+            }
+          : null,
+      };
+    });
+
+    // Category filter (applied post-fetch since it's on a joined table)
+    if (category && category !== 'ALL') {
+      equipment = equipment.filter(
+        (e) => e.equipment_types?.category_name === category
+      );
+    }
+
+    // Search in category_name too (in addition to model_name filtered above)
+    if (search && search.trim()) {
+      const lowerSearch = search.trim().toLowerCase();
+      equipment = equipment.filter(
+        (e) =>
+          e.model_name?.toString().toLowerCase().includes(lowerSearch) ||
+          e.equipment_types?.category_name?.toString().toLowerCase().includes(lowerSearch)
+      );
+    }
 
     return NextResponse.json({ equipment });
   } catch (error: unknown) {
@@ -144,15 +137,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await query<ResultSetHeader>(
-      `INSERT INTO equipment (owner_id, type_id, model_name, daily_rate, status)
-       VALUES (?, ?, ?, ?, 'AVAILABLE')`,
-      [session.user_id, Number(type_id), model_name.trim(), rateNum]
-    );
+    const supabase = getSupabaseAdmin();
+    const { data: newEquip, error } = await supabase
+      .from('equipment')
+      .insert({
+        owner_id: session.user_id,
+        type_id: Number(type_id),
+        model_name: model_name.trim(),
+        daily_rate: rateNum,
+        status: 'AVAILABLE',
+      })
+      .select('equipment_id')
+      .single();
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({
       success: true,
-      equipment_id: result.insertId,
+      equipment_id: newEquip?.equipment_id,
       message: 'Machinery listed successfully.',
     });
   } catch (error: unknown) {

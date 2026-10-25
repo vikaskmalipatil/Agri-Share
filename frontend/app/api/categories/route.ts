@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-import type { EquipmentType } from '@/lib/types';
-import type { RowDataPacket } from 'mysql2';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export async function GET() {
   try {
-    const categories = await query<(RowDataPacket & EquipmentType)[]>(
-      'SELECT type_id, category_name, description FROM equipment_types ORDER BY category_name ASC'
-    );
+    const supabase = getSupabaseAdmin();
+
+    const { data: categories, error } = await supabase
+      .from('equipment_types')
+      .select('type_id, category_name, description')
+      .order('category_name', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
     return NextResponse.json({ categories });
   } catch (error: unknown) {
     const err = error as Error;

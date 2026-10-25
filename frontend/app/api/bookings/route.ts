@@ -1,29 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-
-interface BookingRow extends RowDataPacket {
-  booking_id: number;
-  renter_id: number;
-  equipment_id: number;
-  driver_id: number | null;
-  start_date: string;
-  end_date: string;
-  total_cost: string | number;
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-  created_at: string;
-  model_name: string;
-  daily_rate: string | number;
-  equipment_status: string;
-  renter_name: string;
-  renter_phone: string | null;
-  renter_email: string;
-  driver_name: string | null;
-  driver_phone: string | null;
-  owner_id: number;
-  owner_name: string;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,90 +12,113 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role'); // 'farmer' | 'owner' | 'driver' | 'admin'
 
-    const conditions: string[] = [];
-    const params: (string | number | boolean | null)[] = [];
+    const supabase = getSupabaseAdmin();
 
+    // We need multiple joins: equipment (+ its owner), renter user, driver user
+    // Supabase relation embedding handles this via foreign-key names
+    let q = supabase
+      .from('bookings')
+      .select(`
+        booking_id,
+        renter_id,
+        equipment_id,
+        driver_id,
+        start_date,
+        end_date,
+        total_cost,
+        status,
+        created_at,
+        equipment!fk_booking_equipment (
+          equipment_id,
+          model_name,
+          daily_rate,
+          status,
+          owner_id,
+          users!fk_equipment_owner ( full_name )
+        ),
+        renter:users!fk_booking_renter ( full_name, phone, email ),
+        driver:users!fk_booking_driver ( full_name, phone )
+      `)
+      .order('booking_id', { ascending: false });
+
+    // Role-based filtering
     if (role === 'farmer' || session.role_type === 'FARMER') {
-      conditions.push('b.renter_id = ?');
-      params.push(session.user_id);
-    } else if (role === 'owner' || session.role_type === 'OWNER') {
-      conditions.push('e.owner_id = ?');
-      params.push(session.user_id);
+      q = q.eq('renter_id', session.user_id);
     } else if (role === 'driver' || session.role_type === 'DRIVER') {
-      conditions.push('b.driver_id = ?');
-      params.push(session.user_id);
-    } else if (session.role_type === 'ADMIN') {
-      // Admin can see all bookings
-    } else {
-      conditions.push('b.renter_id = ?');
-      params.push(session.user_id);
+      q = q.eq('driver_id', session.user_id);
+    } else if (role === 'owner' || session.role_type === 'OWNER') {
+      // For owner filtering we need to filter by equipment.owner_id
+      // Supabase can filter on joined columns with the !inner modifier
+      q = supabase
+        .from('bookings')
+        .select(`
+          booking_id,
+          renter_id,
+          equipment_id,
+          driver_id,
+          start_date,
+          end_date,
+          total_cost,
+          status,
+          created_at,
+          equipment!inner (
+            equipment_id,
+            model_name,
+            daily_rate,
+            status,
+            owner_id,
+            users!fk_equipment_owner ( full_name )
+          ),
+          renter:users!fk_booking_renter ( full_name, phone, email ),
+          driver:users!fk_booking_driver ( full_name, phone )
+        `)
+        .eq('equipment.owner_id', session.user_id)
+        .order('booking_id', { ascending: false });
     }
+    // ADMIN sees all — no additional filter
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
 
-    const sql = `
-      SELECT
-        b.booking_id,
-        b.renter_id,
-        b.equipment_id,
-        b.driver_id,
-        b.start_date,
-        b.end_date,
-        b.total_cost,
-        b.status,
-        b.created_at,
-        e.model_name,
-        e.daily_rate,
-        e.status AS equipment_status,
-        e.owner_id,
-        renter.full_name AS renter_name,
-        renter.phone AS renter_phone,
-        renter.email AS renter_email,
-        driver.full_name AS driver_name,
-        driver.phone AS driver_phone,
-        owner.full_name AS owner_name
-      FROM bookings b
-      JOIN equipment e ON b.equipment_id = e.equipment_id
-      JOIN users renter ON b.renter_id = renter.user_id
-      JOIN users owner ON e.owner_id = owner.user_id
-      LEFT JOIN users driver ON b.driver_id = driver.user_id
-      ${whereClause}
-      ORDER BY b.booking_id DESC
-    `;
+    const bookings = (rows || []).map((r: Record<string, unknown>) => {
+      const equip = r.equipment as Record<string, unknown> | null;
+      const renter = r.renter as Record<string, unknown> | null;
+      const driver = r.driver as Record<string, unknown> | null;
+      const equipOwner = equip?.users as Record<string, unknown> | null;
 
-    const rows = await query<BookingRow[]>(sql, params);
-
-    const bookings = rows.map((r) => ({
-      booking_id: r.booking_id,
-      renter_id: r.renter_id,
-      equipment_id: r.equipment_id,
-      driver_id: r.driver_id,
-      start_date: r.start_date,
-      end_date: r.end_date,
-      total_cost: Number(r.total_cost),
-      status: r.status,
-      created_at: r.created_at,
-      equipment: {
-        model_name: r.model_name,
-        daily_rate: Number(r.daily_rate),
-        status: r.equipment_status,
-      },
-      users: {
-        full_name: r.renter_name,
-        phone: r.renter_phone,
-        email: r.renter_email,
-      },
-      driver: r.driver_name
-        ? {
-            full_name: r.driver_name,
-            phone: r.driver_phone,
-          }
-        : null,
-      owner: {
-        owner_id: r.owner_id,
-        full_name: r.owner_name,
-      },
-    }));
+      return {
+        booking_id: r.booking_id,
+        renter_id: r.renter_id,
+        equipment_id: r.equipment_id,
+        driver_id: r.driver_id,
+        start_date: r.start_date,
+        end_date: r.end_date,
+        total_cost: Number(r.total_cost),
+        status: r.status,
+        created_at: r.created_at,
+        equipment: equip
+          ? {
+              model_name: equip.model_name,
+              daily_rate: Number(equip.daily_rate),
+              status: equip.status,
+            }
+          : null,
+        users: renter
+          ? {
+              full_name: renter.full_name,
+              phone: renter.phone,
+              email: renter.email,
+            }
+          : null,
+        driver: driver?.full_name
+          ? { full_name: driver.full_name, phone: driver.phone }
+          : null,
+        owner: {
+          owner_id: equip?.owner_id,
+          full_name: equipOwner?.full_name || null,
+        },
+      };
+    });
 
     return NextResponse.json({ bookings });
   } catch (error: unknown) {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { equipment_id, driver_id, start_date, end_date, total_cost } = body;
+    const { equipment_id, driver_id, start_date, end_date } = body;
 
     if (!equipment_id || !start_date || !end_date) {
       return NextResponse.json(
@@ -160,84 +160,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call the stored procedure create_booking
-    // The procedure validates dates, checks for overlaps,
-    // calculates total_cost from the DB rate, and inserts the booking + payment.
-    // OUT parameters: @out_bid (new booking_id), @out_msg (result message)
-    try {
-      await query('SET @out_bid = NULL, @out_msg = NULL');
-      await query(
-        'CALL create_booking(?, ?, ?, ?, ?, @out_bid, @out_msg)',
-        [session.user_id, equipId, driverId ?? 0, start_date, end_date]
-      );
-      const outRows = await query<RowDataPacket[]>(
-        'SELECT @out_bid AS booking_id, @out_msg AS status_message'
-      );
+    const supabase = getSupabaseAdmin();
 
-      if (outRows.length > 0 && outRows[0].booking_id) {
-        return NextResponse.json({
-          success: true,
-          booking_id: outRows[0].booking_id,
-          message: outRows[0].status_message || 'Booking created successfully.',
-        });
-      } else if (outRows.length > 0 && outRows[0].status_message?.startsWith('ERROR')) {
-        return NextResponse.json(
-          { error: outRows[0].status_message },
-          { status: 409 }
-        );
+    // Try calling the create_booking RPC function first (if it exists in Supabase)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('create_booking', {
+      p_renter_id: session.user_id,
+      p_equipment_id: equipId,
+      p_driver_id: driverId ?? 0,
+      p_start_date: start_date,
+      p_end_date: end_date,
+    });
+
+    if (!rpcError && rpcResult) {
+      const result = typeof rpcResult === 'string' ? JSON.parse(rpcResult) : rpcResult;
+
+      if (result.error) {
+        return NextResponse.json({ error: result.error }, { status: 409 });
       }
-    } catch {
-      // Fallback: if stored procedure is not yet created, use a direct insert.
-      // Calculate cost from the equipment's daily_rate in the database.
-      const equipRows = await query<RowDataPacket[]>(
-        'SELECT daily_rate FROM equipment WHERE equipment_id = ?',
-        [equipId]
-      );
-      const dailyRate = equipRows.length > 0 ? Number(equipRows[0].daily_rate) : 0;
-      const rentalDays =
-        Math.ceil(
-          (new Date(end_date).getTime() - new Date(start_date).getTime()) /
-            (1000 * 60 * 60 * 24)
-        ) + 1;
-      const computedCost = dailyRate * rentalDays;
-
-      const conflicts = await query<RowDataPacket[]>(
-        `SELECT booking_id FROM bookings
-         WHERE equipment_id = ?
-           AND status IN ('PENDING', 'CONFIRMED')
-           AND NOT (? < start_date OR ? > end_date)`,
-        [equipId, end_date, start_date]
-      );
-
-      if (conflicts.length > 0) {
-        return NextResponse.json(
-          { error: 'Equipment is already booked for these selected dates.' },
-          { status: 409 }
-        );
-      }
-
-      const insertRes = await query<ResultSetHeader>(
-        `INSERT INTO bookings (renter_id, equipment_id, driver_id, start_date, end_date, total_cost, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
-        [session.user_id, equipId, driverId, start_date, end_date, computedCost]
-      );
-
-      const bookingId = insertRes.insertId;
-
-      await query(
-        `INSERT INTO payments (booking_id, amount, payment_method, payment_status)
-         VALUES (?, ?, 'UPI', 'PENDING')`,
-        [bookingId, computedCost]
-      );
 
       return NextResponse.json({
         success: true,
-        booking_id: bookingId,
-        message: 'Booking created successfully.',
+        booking_id: result.booking_id,
+        message: result.message || 'Booking created successfully.',
       });
     }
 
-    return NextResponse.json({ success: true });
+    // Fallback: manual insert if the RPC function doesn't exist
+    // 1. Get daily rate from equipment
+    const { data: equipRow, error: equipErr } = await supabase
+      .from('equipment')
+      .select('daily_rate, status')
+      .eq('equipment_id', equipId)
+      .single();
+
+    if (equipErr || !equipRow) {
+      return NextResponse.json({ error: 'Equipment not found.' }, { status: 404 });
+    }
+
+    if (equipRow.status === 'MAINTENANCE') {
+      return NextResponse.json(
+        { error: 'Equipment is under maintenance and cannot be booked.' },
+        { status: 409 }
+      );
+    }
+
+    const dailyRate = Number(equipRow.daily_rate);
+    const rentalDays =
+      Math.ceil(
+        (new Date(end_date).getTime() - new Date(start_date).getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
+    const computedCost = dailyRate * rentalDays;
+
+    // 2. Check for overlapping bookings
+    const { data: conflicts } = await supabase
+      .from('bookings')
+      .select('booking_id')
+      .eq('equipment_id', equipId)
+      .in('status', ['PENDING', 'CONFIRMED'])
+      .lte('start_date', end_date)
+      .gte('end_date', start_date);
+
+    if (conflicts && conflicts.length > 0) {
+      return NextResponse.json(
+        { error: 'Equipment is already booked for these selected dates.' },
+        { status: 409 }
+      );
+    }
+
+    // 3. Insert booking
+    const { data: newBooking, error: insertErr } = await supabase
+      .from('bookings')
+      .insert({
+        renter_id: session.user_id,
+        equipment_id: equipId,
+        driver_id: driverId,
+        start_date,
+        end_date,
+        total_cost: computedCost,
+        status: 'PENDING',
+      })
+      .select('booking_id')
+      .single();
+
+    if (insertErr) throw new Error(insertErr.message);
+
+    // 4. Insert matching pending payment
+    await supabase.from('payments').insert({
+      booking_id: newBooking!.booking_id,
+      amount: computedCost,
+      payment_method: 'UPI',
+      payment_status: 'PENDING',
+    });
+
+    return NextResponse.json({
+      success: true,
+      booking_id: newBooking!.booking_id,
+      message: 'Booking created successfully.',
+    });
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json(
@@ -268,28 +288,39 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid booking status.' }, { status: 400 });
     }
 
-    await query<ResultSetHeader>(
-      'UPDATE bookings SET status = ? WHERE booking_id = ?',
-      [status, Number(booking_id)]
-    );
+    const supabase = getSupabaseAdmin();
+    const bookingIdNum = Number(booking_id);
 
-    // If trigger did not automatically update equipment status, ensure consistency:
-    if (status === 'CONFIRMED') {
-      await query(
-        `UPDATE equipment e
-         JOIN bookings b ON e.equipment_id = b.equipment_id
-         SET e.status = 'RENTED'
-         WHERE b.booking_id = ?`,
-        [Number(booking_id)]
-      );
-    } else if (status === 'COMPLETED' || status === 'CANCELLED') {
-      await query(
-        `UPDATE equipment e
-         JOIN bookings b ON e.equipment_id = b.equipment_id
-         SET e.status = 'AVAILABLE'
-         WHERE b.booking_id = ? AND e.status <> 'MAINTENANCE'`,
-        [Number(booking_id)]
-      );
+    // Update booking status (the DB trigger will handle equipment status automatically)
+    const { error: updateErr } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('booking_id', bookingIdNum);
+
+    if (updateErr) throw new Error(updateErr.message);
+
+    // Safety net: if the trigger isn't installed, manually sync equipment status
+    // First get the equipment_id for this booking
+    const { data: bookingRow } = await supabase
+      .from('bookings')
+      .select('equipment_id')
+      .eq('booking_id', bookingIdNum)
+      .single();
+
+    if (bookingRow) {
+      if (status === 'CONFIRMED') {
+        await supabase
+          .from('equipment')
+          .update({ status: 'RENTED' })
+          .eq('equipment_id', bookingRow.equipment_id);
+      } else if (status === 'COMPLETED' || status === 'CANCELLED') {
+        // Only revert if the equipment isn't under MAINTENANCE
+        await supabase
+          .from('equipment')
+          .update({ status: 'AVAILABLE' })
+          .eq('equipment_id', bookingRow.equipment_id)
+          .neq('status', 'MAINTENANCE');
+      }
     }
 
     return NextResponse.json({

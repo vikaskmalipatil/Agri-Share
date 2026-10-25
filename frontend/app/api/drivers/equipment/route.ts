@@ -1,16 +1,6 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import type { RowDataPacket } from 'mysql2';
-
-interface DriverEquipRow extends RowDataPacket {
-  equipment_id: number;
-  driver_id: number;
-  driver_hr_rate: string | number;
-  cert_date: string;
-  model_name: string;
-  daily_rate: string | number;
-}
 
 export async function GET() {
   try {
@@ -19,30 +9,36 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const rows = await query<DriverEquipRow[]>(
-      `SELECT
-        ed.equipment_id,
-        ed.driver_id,
-        ed.driver_hr_rate,
-        ed.cert_date,
-        e.model_name,
-        e.daily_rate
-       FROM equipment_drivers ed
-       JOIN equipment e ON ed.equipment_id = e.equipment_id
-       WHERE ed.driver_id = ?`,
-      [session.user_id]
-    );
+    const supabase = getSupabaseAdmin();
 
-    const eligibleEquipment = rows.map((r) => ({
-      equipment_id: r.equipment_id,
-      driver_id: r.driver_id,
-      driver_hr_rate: Number(r.driver_hr_rate),
-      cert_date: r.cert_date,
-      equipment: {
-        model_name: r.model_name,
-        daily_rate: Number(r.daily_rate),
-      },
-    }));
+    const { data: rows, error } = await supabase
+      .from('equipment_drivers')
+      .select(`
+        equipment_id,
+        driver_id,
+        driver_hr_rate,
+        cert_date,
+        equipment!fk_eqd_equipment ( model_name, daily_rate )
+      `)
+      .eq('driver_id', session.user_id);
+
+    if (error) throw new Error(error.message);
+
+    const eligibleEquipment = (rows || []).map((r: Record<string, unknown>) => {
+      const equip = r.equipment as Record<string, unknown> | null;
+      return {
+        equipment_id: r.equipment_id,
+        driver_id: r.driver_id,
+        driver_hr_rate: Number(r.driver_hr_rate),
+        cert_date: r.cert_date,
+        equipment: equip
+          ? {
+              model_name: equip.model_name,
+              daily_rate: Number(equip.daily_rate),
+            }
+          : null,
+      };
+    });
 
     return NextResponse.json({ eligibleEquipment });
   } catch (error: unknown) {

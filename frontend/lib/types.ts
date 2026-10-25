@@ -1,6 +1,6 @@
 // ============================================================
 // Agri-Share – Shared TypeScript type definitions
-// Mirrors the MySQL 8.0 schema.
+// Mirrors the Supabase PostgreSQL schema.
 // ============================================================
 
 export type UserRole = 'FARMER' | 'OWNER' | 'DRIVER' | 'ADMIN';

@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { verifyPassword, setSession } from '@/lib/auth';
 import type { AppUser } from '@/lib/types';
-import type { RowDataPacket } from 'mysql2';
-
-interface UserRow extends RowDataPacket, AppUser {
-  password_hash: string;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,23 +15,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Query user by email
-    const rows = await query<UserRow[]>(
-      'SELECT * FROM users WHERE email = ? LIMIT 1',
-      [email.trim().toLowerCase()]
-    );
+    const supabase = getSupabaseAdmin();
 
-    if (rows.length === 0) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('user_id, full_name, email, role_type, phone, address, created_at, password_hash')
+      .eq('email', email.trim().toLowerCase())
+      .single();
+
+    if (error || !user) {
       return NextResponse.json(
         { error: 'No account found with this email address.' },
         { status: 401 }
       );
     }
 
-    const user = rows[0];
-
-    // Verify password (supports PBKDF2 hash or plain string for viva)
-    const isValid = verifyPassword(password, user.password_hash);
+    const isValid = verifyPassword(password, user.password_hash as string);
     if (!isValid) {
       return NextResponse.json(
         { error: 'Incorrect password. Please verify your credentials.' },
@@ -44,19 +38,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set HTTP-only session cookie
-    await setSession(user);
+    const appUser: AppUser = {
+      user_id: user.user_id,
+      full_name: user.full_name,
+      email: user.email,
+      role_type: user.role_type,
+      phone: user.phone,
+      address: user.address,
+      created_at: user.created_at,
+    };
+
+    await setSession(appUser);
 
     return NextResponse.json({
       success: true,
-      user: {
-        user_id: user.user_id,
-        full_name: user.full_name,
-        email: user.email,
-        role_type: user.role_type,
-        phone: user.phone,
-        address: user.address,
-      },
+      user: appUser,
     });
   } catch (error: unknown) {
     const err = error as Error;
