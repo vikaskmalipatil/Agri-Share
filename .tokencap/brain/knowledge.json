@@ -1,0 +1,260 @@
+{
+  "version": "0.9",
+  "generatedAt": "2026-10-25T05:54:22.314Z",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "databases": [],
+    "orms": [],
+    "auth": [],
+    "testing": [],
+    "buildTools": [],
+    "cloudSdks": [],
+    "payments": [],
+    "other": [],
+    "packageManager": null,
+    "summary": "(unknown)"
+  },
+  "clusters": [
+    {
+      "name": "API",
+      "files": [
+        "frontend/app/api/admin/data/route.ts",
+        "frontend/app/api/bookings/route.ts",
+        "frontend/app/api/categories/route.ts",
+        "frontend/app/api/drivers/equipment/route.ts",
+        "frontend/app/api/equipment/[id]/route.ts",
+        "frontend/app/api/equipment/route.ts",
+        "frontend/app/api/maintenance/route.ts",
+        "frontend/app/api/payments/route.ts",
+        "frontend/middleware.ts"
+      ],
+      "risk": "HIGH",
+      "centralFile": "frontend/app/api/admin/data/route.ts",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Authentication",
+      "files": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts",
+        "frontend/app/login/page.tsx",
+        "frontend/app/signup/page.tsx"
+      ],
+      "risk": "HIGH",
+      "centralFile": "frontend/app/api/auth/login/route.ts",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Database",
+      "files": [
+        ".tokencap/constitution/schema-invariants.yaml",
+        "frontend/lib/db.ts"
+      ],
+      "risk": "MEDIUM",
+      "centralFile": ".tokencap/constitution/schema-invariants.yaml",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Lib (types)",
+      "files": [
+        "frontend/lib/auth.ts",
+        "frontend/lib/types.ts"
+      ],
+      "risk": "MEDIUM",
+      "centralFile": "frontend/lib/types.ts",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Other",
+      "files": [
+        ".tokencap/constitution/api-contracts.yaml",
+        ".tokencap/constitution/constitution.yaml"
+      ],
+      "risk": "LOW",
+      "centralFile": ".tokencap/constitution/api-contracts.yaml",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Dashboard",
+      "files": [
+        "frontend/app/dashboard/admin/page.tsx",
+        "frontend/app/dashboard/driver/page.tsx",
+        "frontend/app/dashboard/farmer/page.tsx",
+        "frontend/app/dashboard/owner/page.tsx"
+      ],
+      "risk": "LOW",
+      "centralFile": "frontend/app/dashboard/admin/page.tsx",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Frontend",
+      "files": [
+        "frontend/app/equipment/[id]/page.tsx",
+        "frontend/app/equipment/page.tsx",
+        "frontend/app/layout.tsx",
+        "frontend/app/page.tsx",
+        "frontend/components/Footer.tsx",
+        "frontend/components/Navbar.tsx",
+        "frontend/components/StatusBadge.tsx"
+      ],
+      "risk": "LOW",
+      "centralFile": "frontend/app/equipment/[id]/page.tsx",
+      "dependsOn": [],
+      "usedBy": []
+    },
+    {
+      "name": "Config",
+      "files": [
+        "frontend/eslint.config.mjs",
+        "frontend/next-env.d.ts",
+        "frontend/next.config.ts"
+      ],
+      "risk": "LOW",
+      "centralFile": "frontend/eslint.config.mjs",
+      "dependsOn": [],
+      "usedBy": []
+    }
+  ],
+  "criticalFiles": [
+    "frontend/lib/types.ts",
+    ".tokencap/constitution/api-contracts.yaml",
+    ".tokencap/constitution/constitution.yaml",
+    ".tokencap/constitution/schema-invariants.yaml",
+    "frontend/app/api/admin/data/route.ts",
+    "frontend/app/api/auth/login/route.ts",
+    "frontend/app/api/auth/logout/route.ts",
+    "frontend/app/api/auth/me/route.ts",
+    "frontend/app/api/auth/signup/route.ts",
+    "frontend/app/api/bookings/route.ts",
+    "frontend/app/api/categories/route.ts",
+    "frontend/app/api/drivers/equipment/route.ts",
+    "frontend/app/api/equipment/[id]/route.ts",
+    "frontend/app/api/equipment/route.ts",
+    "frontend/app/api/maintenance/route.ts"
+  ],
+  "architecture": {
+    "style": "Modular",
+    "layers": [
+      "Modular"
+    ],
+    "criticalChains": []
+  },
+  "riskAreas": [
+    {
+      "cluster": "API",
+      "level": "HIGH",
+      "files": [
+        "frontend/app/api/admin/data/route.ts",
+        "frontend/app/api/bookings/route.ts",
+        "frontend/app/api/categories/route.ts",
+        "frontend/app/api/drivers/equipment/route.ts",
+        "frontend/app/api/equipment/[id]/route.ts",
+        "frontend/app/api/equipment/route.ts",
+        "frontend/app/api/maintenance/route.ts",
+        "frontend/app/api/payments/route.ts"
+      ],
+      "reason": "API layer is the public contract. Breaking changes here break all consumers."
+    },
+    {
+      "cluster": "Authentication",
+      "level": "HIGH",
+      "files": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts"
+      ],
+      "reason": "Authentication controls access to the entire application. Bugs here cause security breaches."
+    },
+    {
+      "cluster": "Database",
+      "level": "MEDIUM",
+      "files": [
+        ".tokencap/constitution/schema-invariants.yaml",
+        "frontend/lib/db.ts"
+      ],
+      "reason": "Database layer holds all persistent state. Schema changes can corrupt or lose data."
+    },
+    {
+      "cluster": "Lib (types)",
+      "level": "MEDIUM",
+      "files": [
+        "frontend/lib/auth.ts",
+        "frontend/lib/types.ts"
+      ],
+      "reason": "Lib (types) contains 2 modules with elevated risk. Most-connected file: types.ts (1 importers)."
+    }
+  ],
+  "reviewGroups": [
+    {
+      "name": "API Review Group",
+      "files": [
+        "frontend/app/api/admin/data/route.ts",
+        "frontend/app/api/bookings/route.ts",
+        "frontend/app/api/categories/route.ts",
+        "frontend/app/api/drivers/equipment/route.ts",
+        "frontend/app/api/equipment/[id]/route.ts",
+        "frontend/app/api/equipment/route.ts",
+        "frontend/app/api/maintenance/route.ts",
+        "frontend/app/api/payments/route.ts",
+        "frontend/middleware.ts"
+      ],
+      "reason": "Shared dependency chain (9 files). Central file: route.ts with 0 importers. Changes in this group carry HIGH risk — review all listed files together.",
+      "risk": "HIGH"
+    },
+    {
+      "name": "Authentication Review Group",
+      "files": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts",
+        "frontend/app/login/page.tsx",
+        "frontend/app/signup/page.tsx"
+      ],
+      "reason": "Shared dependency chain (6 files). Central file: route.ts with 0 importers. Changes in this group carry HIGH risk — review all listed files together.",
+      "risk": "HIGH"
+    }
+  ],
+  "recentChanges": {
+    "branch": "finnal",
+    "filesChanged": 23,
+    "riskLevel": "CRITICAL",
+    "featuresAdded": [
+      "Authentication System: .Tokencap",
+      "Application Logic: Build Output",
+      "Documentation: AGENTS",
+      "Database Layer"
+    ],
+    "featuresModified": [
+      "Configuration",
+      "API Layer: Route",
+      "API Layer: Route",
+      "API Layer: Route",
+      "API Layer: Route",
+      "API Layer: Route",
+      "API Layer: Route",
+      "API Layer: Route",
+      "Authentication System: Route",
+      "Authentication System: Route",
+      "Authentication System: Route",
+      "Payment System: Route",
+      "Application Logic: Lib"
+    ]
+  },
+  "rules": [
+    "Core library code lives in lib/ — keep it framework-agnostic",
+    "UI components live in components/ — keep them presentational",
+    "App Router entry points live in app/ — follow Next.js file conventions",
+    "API route handlers live in api/ — keep them thin, delegate to services"
+  ]
+}

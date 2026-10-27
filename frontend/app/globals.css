@@ -1,26 +1,172 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f5ea;
+  --foreground: #24332b;
+  --surface: #ffffff;
+  --harvest-green: #174d32;
+  --crop-gold: #e6b84a;
+  --fertile-earth: #24332b;
+  --leaf-green: #1f6b45;
+  --sunset-amber: #fde8e7;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-harvest: var(--harvest-green);
+  --color-harvest-dark: #103923;
+  --color-crop: var(--crop-gold);
+  --color-earth: var(--fertile-earth);
+  --color-pasture: var(--background);
+  --color-leaf: var(--leaf-green);
+  --color-leaf-dark: #174d32;
+  --color-sunset: var(--sunset-amber);
+  --color-sunset-dark: #88332d;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-emerald-50: #f1f7f1;
+  --color-emerald-100: #ddf3e4;
+  --color-emerald-200: #c4e7ce;
+  --color-emerald-300: #9fd4b0;
+  --color-emerald-400: #70ba8b;
+  --color-emerald-500: #469769;
+  --color-emerald-600: #2e8054;
+  --color-emerald-700: #1f6b45;
+  --color-emerald-800: #1a5b3d;
+  --color-emerald-900: #174d32;
+  --color-emerald-950: #103923;
+
+  --color-stone-50: #fcfbf7;
+  --color-stone-100: #f7f5ea;
+  --color-stone-200: #ebe8d8;
+  --color-stone-300: #dad6c5;
+  --color-stone-400: #aaa99a;
+  --color-stone-500: #77776b;
+  --color-stone-600: #5a625b;
+  --color-stone-700: #3f5146;
+  --color-stone-800: #2f4036;
+  --color-stone-900: #24332b;
+  --color-stone-950: #17231c;
+
+  --color-zinc-50: #fcfbf7;
+  --color-zinc-100: #f7f5ea;
+  --color-zinc-200: #ebe8d8;
+  --color-zinc-300: #dad6c5;
+  --color-zinc-400: #aaa99a;
+  --color-zinc-500: #77776b;
+  --color-zinc-600: #5a625b;
+  --color-zinc-700: #3f5146;
+  --color-zinc-800: #2f4036;
+  --color-zinc-900: #24332b;
+  --color-zinc-950: #17231c;
+
+  --color-amber-50: #fff9e9;
+  --color-amber-100: #fff1cc;
+  --color-amber-200: #f5dfa0;
+  --color-amber-300: #edca6d;
+  --color-amber-400: #e6b84a;
+  --color-amber-500: #c99b32;
+  --color-amber-600: #a77c20;
+  --color-amber-700: #805d1b;
+  --color-amber-800: #684b19;
+  --color-amber-900: #573f18;
+  --color-amber-950: #32230c;
+
+  --color-yellow-50: #fff9e9;
+  --color-yellow-100: #fff1cc;
+  --color-yellow-200: #f5dfa0;
+  --color-yellow-300: #edca6d;
+  --color-yellow-400: #e6b84a;
+  --color-yellow-500: #c99b32;
+  --color-yellow-600: #a77c20;
+  --color-yellow-700: #805d1b;
+  --color-yellow-800: #684b19;
+  --color-yellow-900: #573f18;
+  --color-yellow-950: #32230c;
+
+  --color-red-50: #fff5f4;
+  --color-red-100: #fde8e7;
+  --color-red-200: #f5c9c6;
+  --color-red-300: #e9a09b;
+  --color-red-400: #d47770;
+  --color-red-500: #bd5a53;
+  --color-red-600: #a8443d;
+  --color-red-700: #88332d;
+  --color-red-800: #702c28;
+  --color-red-900: #5d2724;
+  --color-red-950: #351311;
+
+  --color-rose-50: #fff5f4;
+  --color-rose-100: #fde8e7;
+  --color-rose-200: #f5c9c6;
+  --color-rose-300: #e9a09b;
+  --color-rose-400: #d47770;
+  --color-rose-500: #bd5a53;
+  --color-rose-600: #a8443d;
+  --color-rose-700: #88332d;
+  --color-rose-800: #702c28;
+  --color-rose-900: #5d2724;
+  --color-rose-950: #351311;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100%;
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: #ddf3e4;
+  color: #174d32;
+}
+
+:focus-visible {
+  outline: 3px solid #e6b84a;
+  outline-offset: 3px;
+}
+
+input,
+select,
+textarea {
+  color: var(--foreground);
+  accent-color: var(--leaf-green);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #77776b;
+  opacity: 1;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.farm-image-frame {
+  isolation: isolate;
+  background: #ddf3e4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

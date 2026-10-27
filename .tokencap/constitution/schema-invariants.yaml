@@ -1,0 +1,37 @@
+# Schema Invariants
+# TokenCap Constitution Engine
+
+CONST-SCHEMA-001: equipment_types(type_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-002: equipment(equipment_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-003: equipment_drivers(equipment_id, driver_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-004: maintenance_logs(log_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-005: bookings(booking_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-006: payments(payment_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql
+
+CONST-SCHEMA-007: reviews(review_id) primary key must not change type or be removed.
+  severity:   IMMUTABLE
+  confidence: 0.95
+  derivedFrom: database/schema.sql

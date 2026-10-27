@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "runCount": 5,
+  "totalTokensSaved": 241658,
+  "lastBuildSavings": 55126,
+  "lastBuildAt": "2026-10-25T05:54:16.379Z",
+  "notifiedMilestones": [
+    50000,
+    100000,
+    200000
+  ],
+  "newMilestones": [
+    200000
+  ],
+  "notice": "TokenCap has saved 241,658 context tokens across 5 builds.",
+  "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression.",
+  "tokenizerProfile": "tokencap-estimate-v1",
+  "runs": [
+    {
+      "generatedAt": "2026-10-25T05:28:46.537Z",
+      "profile": "balanced",
+      "baselineTokens": 72480,
+      "snapshotTokens": 50592,
+      "savedTokens": 21888,
+      "tokenizerProfile": "tokencap-estimate-v1",
+      "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression."
+    },
+    {
+      "generatedAt": "2026-10-25T05:29:59.423Z",
+      "profile": "balanced",
+      "baselineTokens": 115188,
+      "snapshotTokens": 60427,
+      "savedTokens": 54761,
+      "tokenizerProfile": "tokencap-estimate-v1",
+      "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression."
+    },
+    {
+      "generatedAt": "2026-10-25T05:33:46.997Z",
+      "profile": "balanced",
+      "baselineTokens": 115724,
+      "snapshotTokens": 60967,
+      "savedTokens": 54757,
+      "tokenizerProfile": "tokencap-estimate-v1",
+      "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression."
+    },
+    {
+      "generatedAt": "2026-10-25T05:51:53.969Z",
+      "profile": "balanced",
+      "baselineTokens": 116008,
+      "snapshotTokens": 60882,
+      "savedTokens": 55126,
+      "tokenizerProfile": "tokencap-estimate-v1",
+      "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression."
+    },
+    {
+      "generatedAt": "2026-10-25T05:54:16.379Z",
+      "profile": "balanced",
+      "baselineTokens": 116158,
+      "snapshotTokens": 61032,
+      "savedTokens": 55126,
+      "tokenizerProfile": "tokencap-estimate-v1",
+      "baselineDefinition": "Eligible redacted text source files before ranking, selection, or compression."
+    }
+  ]
+}

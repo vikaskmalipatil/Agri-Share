@@ -88,7 +88,7 @@ export default function FarmerDashboard() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 to-white">
+      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 to-stone-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 pb-6 border-b border-emerald-100">
@@ -100,17 +100,17 @@ export default function FarmerDashboard() {
 
           {/* Quick actions */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-            <Link href="/equipment" className="p-5 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+            <Link href="/equipment" className="p-5 rounded-2xl bg-emerald-700 text-white hover:bg-emerald-800 shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95">
               <p className="font-bold text-lg">Browse Equipment</p>
               <p className="text-sm text-emerald-100 mt-0.5">Find available machinery to rent</p>
             </Link>
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-2xl font-extrabold text-zinc-900">{upcoming.length}</p>
-              <p className="text-sm text-zinc-600 mt-0.5">Active / Upcoming Bookings</p>
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-2xl font-extrabold text-harvest">{upcoming.length}</p>
+              <p className="text-sm text-harvest mt-0.5">Active / Upcoming Bookings</p>
             </div>
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-2xl font-extrabold text-zinc-900">{past.length}</p>
-              <p className="text-sm text-zinc-600 mt-0.5">Past Bookings</p>
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-2xl font-extrabold text-harvest">{past.length}</p>
+              <p className="text-sm text-harvest mt-0.5">Past Bookings</p>
             </div>
           </div>
 

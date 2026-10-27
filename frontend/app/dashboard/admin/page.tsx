@@ -133,7 +133,7 @@ export default function AdminDashboard() {
             <p className="text-sm text-zinc-600 mb-4">{error}</p>
             <Link
               href="/"
-              className="inline-block px-5 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-xl"
+              className="inline-block px-5 py-2 text-xs font-medium text-white bg-emerald-700 rounded-xl shadow-md shadow-emerald-900/10"
             >
               Return to Home
             </Link>
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-white to-white">
+      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-stone-50 to-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="pb-6 mb-8 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -187,32 +187,32 @@ export default function AdminDashboard() {
 
           {/* Aggregated Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Total Users
               </span>
-              <span className="text-2xl font-extrabold text-zinc-900">{users.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{users.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Equipment Listed
               </span>
-              <span className="text-2xl font-extrabold text-emerald-700">{equipment.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{equipment.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Total Bookings
               </span>
-              <span className="text-2xl font-extrabold text-blue-700">{bookings.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{bookings.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Successful Payments
               </span>
-              <span className="text-2xl font-extrabold text-emerald-800">
+              <span className="text-2xl font-extrabold text-harvest">
                 ₹{totalRevenue.toLocaleString("en-IN")}
               </span>
             </div>
@@ -301,12 +301,12 @@ export default function AdminDashboard() {
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   u.role_type === "ADMIN"
-                                    ? "bg-purple-100 text-purple-700"
+                                    ? "bg-earth/10 text-earth"
                                     : u.role_type === "OWNER"
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-crop/25 text-earth"
                                     : u.role_type === "DRIVER"
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-emerald-100 text-emerald-700"
+                                    ? "bg-leaf/10 text-leaf-dark"
+                                    : "bg-emerald-100 text-harvest"
                                 }`}
                               >
                                 {u.role_type}

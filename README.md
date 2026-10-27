@@ -1,6 +1,6 @@
 # Agri-Share — Farm Equipment Rental Platform
 
-Agri-Share is a peer-to-peer agricultural machinery and equipment sharing web application and DBMS mini-project built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, and **MySQL 8.0**.
+Agri-Share is a peer-to-peer agricultural machinery and equipment sharing web application and DBMS mini-project. The frontend API uses **Supabase (PostgreSQL)**; the separate academic database scripts in `database/` target **MySQL 8.0**.
 
 ---
 
@@ -14,7 +14,8 @@ Agri-Share is a peer-to-peer agricultural machinery and equipment sharing web ap
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
-- **Backend & Database**: MySQL 8.0 (InnoDB) with `mysql2` connection pool
+- **Frontend API backend**: Supabase (PostgreSQL)
+- **Academic DBMS scripts**: MySQL 8.0 (InnoDB)
 - **Architecture**: 3NF Normalized Relational Schema (8 tables, views, triggers, and stored procedures)
 
 ---
@@ -31,13 +32,13 @@ Agri-Share/
 │   └── README.md                       # Database docs & viva preparation guide
 └── frontend/                           # Next.js web application
     ├── app/                            # App Router pages & API endpoints
-    │   ├── api/                        # Server-side MySQL API routes
+    │   ├── api/                        # Server-side Supabase API routes
     │   ├── dashboard/                  # Role-based dashboards (Farmer, Owner, Driver, Admin)
     │   ├── equipment/                  # Equipment catalog and booking
     │   ├── login/                      # Authentication
     │   └── signup/                     # User registration
     ├── components/                     # Shared UI components (Navbar, Footer, StatusBadge)
-    ├── lib/                            # MySQL connection pool, auth helpers, types
+    ├── lib/                            # Supabase client, auth helpers, types
     └── middleware.ts                   # Route protection middleware
 ```
 
@@ -45,25 +46,22 @@ Agri-Share/
 
 ## 🚀 Getting Started
 
-### 1. Database Setup (MySQL 8.0)
-Open **MySQL Workbench** and execute the scripts in `database/` in this exact order:
-1. `database/schema.sql` (Creates database `agri_share`, tables, views, trigger, and procedure)
-2. `database/seeds.sql` (Loads initial sample data)
-3. `database/demo_queries.sql` (Runs viva demonstration queries)
+### 1. Configure the application database (Supabase)
+Create a Supabase project, then open its **SQL Editor** and execute:
+1. `database/supabase_schema.sql`
+2. `database/supabase_seeds.sql`
 
-### 2. Configure Environment Variables
-Inside `frontend/`, create `.env.local` (or copy from `.env.example`):
+Inside `frontend/`, copy `.env.example` to `.env.local` and set the values from **Supabase Dashboard → Project Settings → API**:
 ```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-DB_NAME=agri_share
-
-SESSION_SECRET=agri_share_super_secret_college_dbms_key_2026
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
-### 3. Install Dependencies & Run
+`SUPABASE_SERVICE_ROLE_KEY` is a secret used only by server-side API routes. Do not add the `NEXT_PUBLIC_` prefix to it, expose it in browser code, or commit `.env.local`.
+
+### 2. Install Dependencies & Run
 ```bash
 cd frontend
 npm install
@@ -71,6 +69,9 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+### Academic MySQL scripts
+The MySQL scripts (`database/schema.sql`, `database/seeds.sql`, and `database/demo_queries.sql`) are maintained for the DBMS coursework and can be run separately in MySQL Workbench. The current frontend API does not connect to that MySQL database.
 
 ---
 

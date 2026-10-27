@@ -134,9 +134,9 @@ export default function DriverDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-right">
-                <span className="text-xs text-zinc-400 block">Active Bookings</span>
-                <span className="text-2xl font-bold text-emerald-600">
+              <div className="text-right p-4 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+                <span className="text-xs text-harvest font-semibold block">Active Bookings</span>
+                <span className="text-2xl font-bold text-harvest">
                   {assignedBookings.length}
                 </span>
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EquipmentStatusBadge } from "@/components/StatusBadge";
@@ -142,10 +143,10 @@ export default function EquipmentPage() {
     sortOrder !== "asc";
 
   return (
-    <div className="min-h-screen bg-white text-zinc-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-stone-50 text-stone-800 flex flex-col font-sans">
       <Navbar activePage="equipment" />
 
-      <main className="flex-1 py-10 sm:py-14 bg-gradient-to-b from-emerald-50/40 via-white to-white">
+      <main className="flex-1 py-10 sm:py-14 bg-gradient-to-b from-emerald-50/40 via-stone-50 to-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Header */}
           <div className="mb-8 pb-6 border-b border-emerald-100/80">
@@ -345,7 +346,7 @@ export default function EquipmentPage() {
               <button
                 type="button"
                 onClick={fetchEquipment}
-                className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
               >
                 Try Again
               </button>
@@ -411,6 +412,15 @@ export default function EquipmentPage() {
                   href={`/equipment/${item.equipment_id}`}
                   className="group block rounded-2xl border border-zinc-200/80 bg-white hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-950/5 transition-all duration-200 overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                 >
+                  <div className="farm-image-frame relative aspect-[16/9] overflow-hidden">
+                    <Image
+                      src="/farm-equipment.svg"
+                      alt={`Farm equipment available to rent: ${item.model_name}`}
+                      fill
+                      sizes="(max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  </div>
                   <div className="p-6 pb-4">
                     <div className="flex items-center justify-between mb-4">
                       <EquipmentStatusBadge status={item.status} pulse />
@@ -453,7 +463,7 @@ export default function EquipmentPage() {
                       </div>
                     </div>
 
-                    <div className="text-xs font-semibold text-emerald-800 bg-white border border-emerald-200 px-3.5 py-2 rounded-xl group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all">
+                    <div className="text-xs font-semibold text-emerald-800 bg-white border border-emerald-200 px-3.5 py-2 rounded-xl group-hover:bg-emerald-700 group-hover:text-white group-hover:border-emerald-700 transition-all">
                       View Details →
                     </div>
                   </div>

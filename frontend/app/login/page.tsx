@@ -141,7 +141,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
           >
             {isLoading ? (
               <>
@@ -190,7 +190,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
-      <main className="flex-1 flex items-center justify-center px-4 py-16 bg-gradient-to-b from-emerald-50/40 to-white">
+      <main className="flex-1 flex items-center justify-center px-4 py-16 bg-gradient-to-b from-emerald-50/40 to-stone-50">
         <Suspense
           fallback={
             <div className="w-full max-w-md bg-white rounded-2xl border border-emerald-100 shadow-sm p-8 text-center">

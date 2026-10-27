@@ -1,0 +1,136 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-10-25T05:54:19.074Z",
+  "entry": "START_HERE.md",
+  "project": {
+    "name": "Agri-Share",
+    "type": "Unknown",
+    "architectureStyle": "Modular"
+  },
+  "clusters": [
+    "api",
+    "authentication",
+    "database",
+    "lib-(types)",
+    "other",
+    "dashboard",
+    "frontend",
+    "config"
+  ],
+  "criticalFiles": [
+    "frontend/lib/types.ts",
+    ".tokencap/constitution/api-contracts.yaml",
+    ".tokencap/constitution/constitution.yaml",
+    ".tokencap/constitution/schema-invariants.yaml",
+    "frontend/app/api/admin/data/route.ts",
+    "frontend/app/api/auth/login/route.ts",
+    "frontend/app/api/auth/logout/route.ts",
+    "frontend/app/api/auth/me/route.ts",
+    "frontend/app/api/auth/signup/route.ts",
+    "frontend/app/api/bookings/route.ts"
+  ],
+  "riskAreas": [
+    {
+      "cluster": "api",
+      "level": "HIGH"
+    },
+    {
+      "cluster": "authentication",
+      "level": "HIGH"
+    }
+  ],
+  "reviewGroups": [
+    {
+      "name": "API Review Group",
+      "fileCount": 9
+    },
+    {
+      "name": "Authentication Review Group",
+      "fileCount": 6
+    }
+  ],
+  "allowedContext": {
+    "api": [
+      "frontend/app/api/admin/data/route*",
+      "frontend/app/api/bookings/route*",
+      "frontend/app/api/categories/route*",
+      "frontend/app/api/drivers/equipment/route*",
+      "frontend/app/api/equipment/[id]/route*",
+      "frontend/app/api/equipment/route*",
+      "frontend/app/api/maintenance/route*",
+      "frontend/app/api/payments/route*",
+      "frontend/middleware*"
+    ],
+    "authentication": [
+      "frontend/app/api/auth/login/route*",
+      "frontend/app/api/auth/logout/route*",
+      "frontend/app/api/auth/me/route*",
+      "frontend/app/api/auth/signup/route*",
+      "frontend/app/login/page*",
+      "frontend/app/signup/page*"
+    ],
+    "database": [
+      ".tokencap/constitution/schema-invariants*",
+      "frontend/lib/db.ts"
+    ],
+    "lib-types": [
+      "frontend/lib/**"
+    ],
+    "other": [
+      ".tokencap/constitution/**"
+    ],
+    "dashboard": [
+      "frontend/app/dashboard/admin/page*",
+      "frontend/app/dashboard/driver/page*",
+      "frontend/app/dashboard/farmer/page*",
+      "frontend/app/dashboard/owner/page*"
+    ],
+    "frontend": [
+      "frontend/app/**",
+      "frontend/components/**"
+    ],
+    "config": [
+      "frontend/**"
+    ]
+  },
+  "recommendedReads": {
+    "api": [
+      "architecture.md",
+      "rules.md",
+      "risk-map.md",
+      "review-rules.md"
+    ],
+    "authentication": [
+      "architecture.md",
+      "rules.md",
+      "risk-map.md",
+      "review-rules.md"
+    ],
+    "database": [
+      "architecture.md",
+      "rules.md"
+    ],
+    "lib-(types)": [
+      "architecture.md",
+      "rules.md"
+    ]
+  },
+  "files": {
+    "entry": "START_HERE.md",
+    "intelligence": "agent-pack.md",
+    "allowedContext": "allowed-context.json",
+    "modelInstructions": "model-instructions.md",
+    "architecture": "architecture.md",
+    "rules": "rules.md",
+    "reviewRules": "review-rules.md",
+    "riskMap": "risk-map.md",
+    "techStack": "tech-stack.md",
+    "skills": "skills.md",
+    "machineReadable": "agent.json"
+  },
+  "meta": {
+    "tokencapVersion": "1.0.0",
+    "description": "Self-Loading Universal Context Layer - machine-readable repository intelligence index.",
+    "usage": "Read entry file first, then use allowedContext and recommendedReads for navigation."
+  }
+}

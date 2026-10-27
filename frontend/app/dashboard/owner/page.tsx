@@ -323,7 +323,7 @@ export default function OwnerDashboard() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-white to-white">
+      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-stone-50 to-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 mb-8 border-b border-emerald-100 gap-4">
@@ -341,7 +341,7 @@ export default function OwnerDashboard() {
 
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95 shrink-0"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -352,34 +352,34 @@ export default function OwnerDashboard() {
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-harvest font-semibold mb-1">
                 Total Machinery
               </p>
-              <p className="text-2xl font-extrabold text-zinc-900">{equipmentList.length}</p>
+              <p className="text-2xl font-extrabold text-harvest">{equipmentList.length}</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-harvest font-semibold mb-1">
                 Available for Rent
               </p>
-              <p className="text-2xl font-extrabold text-emerald-700">
+              <p className="text-2xl font-extrabold text-harvest">
                 {equipmentList.filter((e) => e.status === "AVAILABLE").length}
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-harvest font-semibold mb-1">
                 Pending Requests
               </p>
-              <p className="text-2xl font-extrabold text-amber-600">{pendingBookings.length}</p>
+              <p className="text-2xl font-extrabold text-harvest">{pendingBookings.length}</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-harvest font-semibold mb-1">
                 Estimated Revenue
               </p>
-              <p className="text-2xl font-extrabold text-emerald-800">
+              <p className="text-2xl font-extrabold text-harvest">
                 ₹{totalEarnings.toLocaleString("en-IN")}
               </p>
             </div>
@@ -432,7 +432,7 @@ export default function OwnerDashboard() {
                   <p className="text-zinc-600 font-medium">You haven&apos;t listed any farm equipment yet.</p>
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="mt-4 px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl"
+                    className="mt-4 px-5 py-2 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                   >
                     List Your First Equipment
                   </button>
@@ -543,7 +543,7 @@ export default function OwnerDashboard() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleBookingStatus(b.booking_id, "CONFIRMED")}
-                              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                              className="px-3.5 py-1.5 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                             >
                               Confirm
                             </button>
@@ -694,7 +694,7 @@ export default function OwnerDashboard() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow-xs"
+                  className="px-5 py-2 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                 >
                   {isSubmitting ? "Saving…" : "Save Equipment"}
                 </button>
@@ -766,7 +766,7 @@ export default function OwnerDashboard() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow-xs"
+                  className="px-5 py-2 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                 >
                   {isSubmitting ? "Logging…" : "Record Service"}
                 </button>

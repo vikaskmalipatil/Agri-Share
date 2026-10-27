@@ -1,15 +1,16 @@
 import Link from "next/link";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-zinc-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-stone-50 text-stone-800 flex flex-col font-sans">
       <Navbar activePage="home" />
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-white py-16 sm:py-24">
+        <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/70 via-stone-50 to-stone-50 py-16 sm:py-20">
           {/* Decorative background */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-40">
             <div className="absolute -top-24 right-0 w-96 h-96 rounded-full bg-emerald-200/40 blur-3xl" />
@@ -42,7 +43,7 @@ export default function Home() {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/equipment"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg shadow-emerald-700/20 hover:-translate-y-0.5 transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
               >
                 <span>Browse Equipment</span>
                 <svg
@@ -67,8 +68,23 @@ export default function Home() {
               </Link>
             </div>
 
+            <div className="farm-image-frame relative mt-12 h-52 overflow-hidden rounded-3xl border border-emerald-200 shadow-xl shadow-emerald-950/10 sm:h-72">
+              <Image
+                src="/farm-equipment.svg"
+                alt="A green tractor working across cultivated fields"
+                fill
+                priority
+                sizes="(max-width: 640px) 100vw, 960px"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/60 via-transparent to-transparent" />
+              <p className="absolute bottom-4 left-5 text-left text-sm font-semibold text-white drop-shadow sm:bottom-6 sm:left-7 sm:text-base">
+                Good equipment. Shared locally. Better harvests.
+              </p>
+            </div>
+
             {/* Trust highlights */}
-            <div className="mt-14 pt-10 border-t border-emerald-100/80 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+            <div className="mt-10 pt-8 border-t border-emerald-100/80 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
               {[
                 {
                   icon: (
@@ -133,7 +149,7 @@ export default function Home() {
 
         {/* Category showcase — categories shown here are illustrative UI structure;
             actual categories come from the database on the /equipment page. */}
-        <section className="py-14 bg-white border-t border-emerald-50">
+        <section className="py-14 bg-stone-50 border-t border-emerald-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-xl mx-auto mb-10">
               <h2 className="text-2xl font-bold text-zinc-900">

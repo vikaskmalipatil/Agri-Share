@@ -1,0 +1,179 @@
+{
+  "version": "0.8",
+  "projectName": "Agri-Share",
+  "generatedAt": "2026-10-25T05:54:19.065Z",
+  "projectType": "Unknown",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "databases": [],
+    "auth": [],
+    "testing": [],
+    "buildTools": [],
+    "cloudSdks": [],
+    "payments": [],
+    "externalServices": []
+  },
+  "architecture": {
+    "style": "Modular",
+    "layers": [
+      "Modular"
+    ],
+    "clusters": [
+      {
+        "name": "API",
+        "size": 9,
+        "risk": "HIGH",
+        "centralFile": "route.ts"
+      },
+      {
+        "name": "Frontend",
+        "size": 7,
+        "risk": "LOW",
+        "centralFile": "page.tsx"
+      },
+      {
+        "name": "Authentication",
+        "size": 6,
+        "risk": "HIGH",
+        "centralFile": "route.ts"
+      },
+      {
+        "name": "Dashboard",
+        "size": 4,
+        "risk": "LOW",
+        "centralFile": "page.tsx"
+      },
+      {
+        "name": "Config",
+        "size": 3,
+        "risk": "LOW",
+        "centralFile": "eslint.config.mjs"
+      },
+      {
+        "name": "Unclassified",
+        "size": 2,
+        "risk": "LOW",
+        "centralFile": "api-contracts.yaml"
+      },
+      {
+        "name": "Database",
+        "size": 2,
+        "risk": "MEDIUM",
+        "centralFile": "schema-invariants.yaml"
+      },
+      {
+        "name": "Lib (types)",
+        "size": 2,
+        "risk": "MEDIUM",
+        "centralFile": "types.ts"
+      }
+    ],
+    "criticalChains": [],
+    "evidence": []
+  },
+  "criticalFiles": [
+    "frontend/lib/types.ts",
+    ".tokencap/constitution/api-contracts.yaml",
+    ".tokencap/constitution/constitution.yaml",
+    ".tokencap/constitution/schema-invariants.yaml",
+    "frontend/app/api/admin/data/route.ts",
+    "frontend/app/api/auth/login/route.ts",
+    "frontend/app/api/auth/me/route.ts",
+    "frontend/app/api/auth/signup/route.ts",
+    "frontend/app/api/bookings/route.ts",
+    "frontend/app/api/categories/route.ts"
+  ],
+  "riskAreas": [
+    {
+      "cluster": "API",
+      "level": "HIGH",
+      "files": [
+        "frontend/app/api/admin/data/route.ts",
+        "frontend/app/api/bookings/route.ts",
+        "frontend/app/api/categories/route.ts",
+        "frontend/app/api/drivers/equipment/route.ts",
+        "frontend/app/api/equipment/[id]/route.ts",
+        "frontend/app/api/equipment/route.ts",
+        "frontend/app/api/maintenance/route.ts",
+        "frontend/app/api/payments/route.ts"
+      ],
+      "reason": "API layer is the public contract. Breaking changes here break all consumers."
+    },
+    {
+      "cluster": "Authentication",
+      "level": "HIGH",
+      "files": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts"
+      ],
+      "reason": "Authentication controls access to the entire application. Bugs here cause security breaches."
+    },
+    {
+      "cluster": "Database",
+      "level": "MEDIUM",
+      "files": [
+        ".tokencap/constitution/schema-invariants.yaml",
+        "frontend/lib/db.ts"
+      ],
+      "reason": "Database layer holds all persistent state. Schema changes can corrupt or lose data."
+    },
+    {
+      "cluster": "Lib (types)",
+      "level": "MEDIUM",
+      "files": [
+        "frontend/lib/auth.ts",
+        "frontend/lib/types.ts"
+      ],
+      "reason": "Lib (types) contains 2 modules with elevated risk. Most-connected file: types.ts (1 importers)."
+    }
+  ],
+  "reviewGroups": [
+    {
+      "name": "API Review Group",
+      "files": [
+        "frontend/app/api/admin/data/route.ts",
+        "frontend/app/api/bookings/route.ts",
+        "frontend/app/api/categories/route.ts",
+        "frontend/app/api/drivers/equipment/route.ts",
+        "frontend/app/api/equipment/[id]/route.ts",
+        "frontend/app/api/equipment/route.ts",
+        "frontend/app/api/maintenance/route.ts",
+        "frontend/app/api/payments/route.ts",
+        "frontend/middleware.ts"
+      ],
+      "reason": "Shared dependency chain (9 files). Central file: route.ts with 0 importers. Changes in this group carry HIGH risk - review all listed files together.",
+      "risk": "HIGH"
+    },
+    {
+      "name": "Authentication Review Group",
+      "files": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts",
+        "frontend/app/login/page.tsx",
+        "frontend/app/signup/page.tsx"
+      ],
+      "reason": "Shared dependency chain (6 files). Central file: route.ts with 0 importers. Changes in this group carry HIGH risk - review all listed files together.",
+      "risk": "HIGH"
+    }
+  ],
+  "rules": [
+    "Core library code lives in lib/ - keep it framework-agnostic",
+    "UI components live in components/ - keep them presentational",
+    "App Router entry points live in app/ - follow Next.js file conventions",
+    "API route handlers live in api/ - keep them thin, delegate to services"
+  ],
+  "coreFeatures": [
+    "API",
+    "Frontend",
+    "Authentication",
+    "Dashboard",
+    "Database",
+    "Lib (types)"
+  ],
+  "agentInjectHooks": {}
+}

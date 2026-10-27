@@ -1,0 +1,528 @@
+{
+  "version": "1.2",
+  "generatedAt": "2026-10-25T05:54:20.830Z",
+  "rules": [
+    {
+      "id": "CONST-API-001",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/admin/data public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/admin/data."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/admin/data/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-002",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/auth/login public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/auth/login."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/login/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-003",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/auth/logout public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/auth/logout."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/logout/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-004",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/auth/me public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/auth/me."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/me/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-005",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/auth/signup public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/auth/signup."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/signup/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-006",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/bookings public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/bookings."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/bookings/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-007",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/categories public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/categories."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/categories/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-008",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/drivers/equipment public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/drivers/equipment."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/drivers/equipment/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-009",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/equipment public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/equipment."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/equipment/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-010",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/equipment/[id] public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/equipment/[id]."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/equipment/[id]/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-011",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/maintenance public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/maintenance."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/maintenance/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-API-012",
+      "category": "API",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "nextjs",
+      "description": "/api/payments public response structure must remain backward compatible.",
+      "reason": "Public API endpoints form the contract between this service and its consumers.",
+      "whatBreaks": "External integrations, mobile apps, or SDKs break if response shape changes.",
+      "examples": [
+        "Do not remove or rename fields from the response of /api/payments."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/payments/route.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-001",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "equipment_types(type_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing equipment_types(type_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table equipment_types."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-002",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "equipment(equipment_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing equipment(equipment_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table equipment."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-003",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "equipment_drivers(equipment_id, driver_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing equipment_drivers(equipment_id, driver_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table equipment_drivers."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-004",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "maintenance_logs(log_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing maintenance_logs(log_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table maintenance_logs."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-005",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "bookings(booking_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing bookings(booking_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table bookings."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-006",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "payments(payment_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing payments(payment_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table payments."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SCHEMA-007",
+      "category": "Schema",
+      "severity": "IMMUTABLE",
+      "confidence": 0.95,
+      "source": "sql",
+      "description": "reviews(review_id) primary key must not change type or be removed.",
+      "reason": "SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.",
+      "whatBreaks": "All tables with FOREIGN KEY referencing reviews(review_id) break.",
+      "examples": [
+        "Do not ALTER or DROP the primary key of table reviews."
+      ],
+      "derivedFrom": [
+        "database/schema.sql"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-ARCH-001",
+      "category": "Architecture",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "heuristic",
+      "description": "Services cannot import UI components.",
+      "reason": "Importing UI components into services couples server-side logic to browser rendering. This breaks SSR, testability, and separation of concerns.",
+      "whatBreaks": "Server-side services gain browser-only dependencies. Unit tests for services fail. SSR breaks.",
+      "examples": [
+        "Respect the layer boundary described."
+      ],
+      "derivedFrom": [],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-ARCH-002",
+      "category": "Architecture",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "heuristic",
+      "description": "Controllers cannot access the database directly.",
+      "reason": "Direct DB access in controllers bypasses the service layer. This breaks the layered architecture and makes logic untestable.",
+      "whatBreaks": "Business logic leaks into controllers. Database coupling makes refactoring expensive.",
+      "examples": [
+        "Respect the layer boundary described."
+      ],
+      "derivedFrom": [],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-ARCH-003",
+      "category": "Architecture",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "heuristic",
+      "description": "Route handlers cannot access the database directly.",
+      "reason": "Routes should delegate to services/controllers, not query the database themselves.",
+      "whatBreaks": "Business logic scattered across route files. Impossible to test in isolation.",
+      "examples": [
+        "Respect the layer boundary described."
+      ],
+      "derivedFrom": [],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-ARCH-004",
+      "category": "Architecture",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "source": "heuristic",
+      "description": "UI components cannot import server-only modules.",
+      "reason": "Server-only modules may contain secrets or Node.js-only APIs that crash in the browser.",
+      "whatBreaks": "Build errors in browser environments. Potential secret exposure.",
+      "examples": [
+        "Respect the layer boundary described."
+      ],
+      "derivedFrom": [],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-ARCH-005",
+      "category": "Architecture",
+      "severity": "HIGH",
+      "confidence": 0.8,
+      "source": "heuristic",
+      "description": "High-impact clusters (Other, Database, API) must not gain new circular dependencies.",
+      "reason": "High-impact clusters already coordinate many modules. Adding circular imports makes builds fragile.",
+      "whatBreaks": "Module resolution fails. Build tools (webpack, esbuild) may hang or produce incorrect output.",
+      "examples": [
+        "Use dependency injection or an event bus to break cycles."
+      ],
+      "derivedFrom": [],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-SEC-001",
+      "category": "Security",
+      "severity": "CRITICAL",
+      "confidence": 0.9,
+      "source": "heuristic",
+      "description": "Environment secrets must never be hardcoded in source files.",
+      "reason": "Secrets committed to source are exposed via version control history and repository access.",
+      "whatBreaks": "Security breach. API keys, database credentials, and tokens compromised.",
+      "examples": [
+        "Found in: frontend/lib/auth.ts, frontend/lib/db.ts"
+      ],
+      "derivedFrom": [
+        "frontend/lib/auth.ts",
+        "frontend/lib/db.ts"
+      ],
+      "relationships": [],
+      "manual": false
+    },
+    {
+      "id": "CONST-FLOW-001",
+      "category": "CriticalFlow",
+      "severity": "CRITICAL",
+      "confidence": 0.95,
+      "source": "heuristic",
+      "description": "Authentication Flow is repository-critical and must remain intact end-to-end.",
+      "reason": "Every protected page and authenticated feature depends on this flow working correctly.",
+      "whatBreaks": "Users cannot log in. All authenticated features become unreachable. Sessions invalidated.",
+      "examples": [
+        "Do not remove login endpoint.",
+        "Do not change session token format without migration."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/login/route.ts",
+        "frontend/app/api/auth/logout/route.ts",
+        "frontend/app/api/auth/me/route.ts",
+        "frontend/app/api/auth/signup/route.ts",
+        "frontend/app/login/page.tsx"
+      ],
+      "relationships": [
+        "dependsOn:CONST-SEC-001",
+        "dependsOn:CONST-API-002",
+        "dependsOn:CONST-API-003",
+        "dependsOn:CONST-API-004",
+        "dependsOn:CONST-API-005"
+      ],
+      "manual": false
+    },
+    {
+      "id": "CONST-FLOW-002",
+      "category": "CriticalFlow",
+      "severity": "CRITICAL",
+      "confidence": 0.93,
+      "source": "heuristic",
+      "description": "Payment Flow is repository-critical. Checkout must complete reliably.",
+      "reason": "Revenue depends entirely on the payment flow being operational and correct.",
+      "whatBreaks": "Users cannot complete purchases. Revenue stops. Potential chargebacks and disputes.",
+      "examples": [
+        "Do not alter payment state machine.",
+        "Do not remove order confirmation step."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/payments/route.ts"
+      ],
+      "relationships": [
+        "dependsOn:CONST-SEC-001"
+      ],
+      "manual": false
+    },
+    {
+      "id": "CONST-FLOW-003",
+      "category": "CriticalFlow",
+      "severity": "CRITICAL",
+      "confidence": 0.92,
+      "source": "heuristic",
+      "description": "User Registration Flow must remain functional. New users must be able to create accounts.",
+      "reason": "Registration is the entry point for all new users. Breaking it stops user growth.",
+      "whatBreaks": "New users cannot create accounts. User acquisition blocked.",
+      "examples": [
+        "Do not change registration field requirements without versioning.",
+        "Preserve email verification step."
+      ],
+      "derivedFrom": [
+        "frontend/app/api/auth/signup/route.ts",
+        "frontend/app/signup/page.tsx"
+      ],
+      "relationships": [
+        "dependsOn:CONST-SEC-001"
+      ],
+      "manual": false
+    }
+  ],
+  "score": {
+    "total": 95,
+    "architecture": 100,
+    "apiStability": 100,
+    "schemaIntegrity": 100,
+    "security": 85,
+    "compliance": 95
+  },
+  "filesWritten": []
+}
