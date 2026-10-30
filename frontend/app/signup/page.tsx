@@ -29,7 +29,6 @@ export default function SignupPage() {
     confirm_password: "",
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   function handleChange(
@@ -79,7 +78,6 @@ export default function SignupPage() {
         throw new Error(data.error || "Registration failed. Please try again.");
       }
 
-      setSuccess(true);
       router.push(DASHBOARD_MAP[form.role_type]);
       router.refresh();
     } catch (err: unknown) {
@@ -96,45 +94,6 @@ export default function SignupPage() {
   const inputClass =
     "w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition";
   const labelClass = "block text-sm font-medium text-zinc-700 mb-1.5";
-
-  if (success && !error) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col font-sans">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <div className="w-full max-w-md text-center bg-white rounded-2xl border border-emerald-100 shadow-sm p-10">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-5">
-              <svg
-                className="w-7 h-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-zinc-900">Account Created!</h2>
-            <p className="text-sm text-zinc-600 mt-2 leading-relaxed">
-              Please check your email to confirm your account, then{" "}
-              <Link
-                href="/login"
-                className="font-semibold text-emerald-700 hover:underline"
-              >
-                sign in
-              </Link>
-              .
-            </p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">

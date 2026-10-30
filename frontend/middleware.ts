@@ -8,9 +8,6 @@ const PROTECTED_PREFIXES = [
   '/dashboard/admin',
 ];
 
-/** Routes that authenticated users should be redirected away from */
-const AUTH_ROUTES = ['/login', '/signup'];
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('agri_session')?.value;
@@ -24,11 +21,6 @@ export function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // 2. Redirect already logged-in users away from /login and /signup
-  if (sessionCookie && AUTH_ROUTES.includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

@@ -21,13 +21,28 @@ CREATE TABLE IF NOT EXISTS users (
   user_id       SERIAL        PRIMARY KEY,
   full_name     VARCHAR(120)  NOT NULL,
   email         VARCHAR(255)  NOT NULL UNIQUE,
-  password_hash VARCHAR(255)  NOT NULL,
+  password_hash VARCHAR(255),
+  auth_user_id  UUID          UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   phone         VARCHAR(25),
   role_type     TEXT          NOT NULL DEFAULT 'FARMER'
                   CHECK (role_type IN ('FARMER','OWNER','DRIVER','ADMIN')),
   address       TEXT,
   created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
+
+-- Keep role validation current for databases created before DRIVER support.
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_type_check;
+ALTER TABLE public.users
+  ADD CONSTRAINT users_role_type_check
+  CHECK (role_type IN ('FARMER','OWNER','DRIVER','ADMIN'));
+
+-- Add the link for databases where public.users already existed.
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_user_id UUID;
+ALTER TABLE public.users ALTER COLUMN password_hash DROP NOT NULL;
+-- Profile creation is handled by /api/auth/signup; avoid a conflicting auth.users trigger.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_key
+  ON public.users(auth_user_id);
 
 COMMENT ON COLUMN users.password_hash IS 'Plain text for demo; PBKDF2 for real signups';
 

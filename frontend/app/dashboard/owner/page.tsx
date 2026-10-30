@@ -43,6 +43,22 @@ export default function OwnerDashboard() {
   const [newDailyRate, setNewDailyRate] = useState<number | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMessage, setFormMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [editingEquipment, setEditingEquipment] = useState<(Equipment & { equipment_types: EquipmentType | null }) | null>(null);
+  const [editModelName, setEditModelName] = useState("");
+  const [editTypeId, setEditTypeId] = useState<number | "">("");
+  const [editDailyRate, setEditDailyRate] = useState<number | "">("");
+  const [editStatus, setEditStatus] = useState<EquipmentStatus>("AVAILABLE");
+  const [editMessage, setEditMessage] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deletingEquipmentId, setDeletingEquipmentId] = useState<number | null>(null);
+  const [driverManager, setDriverManager] = useState<{ equipmentId: number; modelName: string } | null>(null);
+  const [registeredDrivers, setRegisteredDrivers] = useState<{ user_id: number; full_name: string; email: string }[]>([]);
+  const [assignedDrivers, setAssignedDrivers] = useState<{ driver_id: number; driver_hr_rate: number; cert_date: string; users?: { full_name: string; email: string } | null }[]>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState<number | "">("");
+  const [driverHourlyRate, setDriverHourlyRate] = useState<number | "">("");
+  const [driverManagerLoading, setDriverManagerLoading] = useState(false);
+  const [driverManagerSaving, setDriverManagerSaving] = useState(false);
+  const [driverManagerError, setDriverManagerError] = useState<string | null>(null);
 
   // Maintenance log modal state
   const [showMaintModal, setShowMaintModal] = useState(false);
@@ -86,10 +102,9 @@ export default function OwnerDashboard() {
 
       // 4. Fetch bookings for owned equipment
       const bkRes = await fetch("/api/bookings?role=owner");
-      if (bkRes.ok) {
-        const bkJson = await bkRes.json();
-        setBookings(bkJson.bookings || []);
-      }
+      const bkJson = await bkRes.json();
+      if (!bkRes.ok) throw new Error(bkJson.error || "Failed to load booking requests.");
+      setBookings(Array.isArray(bkJson.bookings) ? bkJson.bookings : []);
 
       // 5. Fetch maintenance logs
       const maintRes = await fetch("/api/maintenance");
@@ -135,10 +150,9 @@ export default function OwnerDashboard() {
         }
 
         const bkRes = await fetch("/api/bookings?role=owner");
-        if (bkRes.ok && !cancelled) {
-          const bkJson = await bkRes.json();
-          setBookings(bkJson.bookings || []);
-        }
+        const bkJson = await bkRes.json();
+        if (!bkRes.ok) throw new Error(bkJson.error || "Failed to load booking requests.");
+        if (!cancelled) setBookings(Array.isArray(bkJson.bookings) ? bkJson.bookings : []);
 
         const maintRes = await fetch("/api/maintenance");
         if (maintRes.ok && !cancelled) {
@@ -181,6 +195,111 @@ export default function OwnerDashboard() {
       );
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to update status");
+    }
+  }
+
+  function openEditEquipment(item: Equipment & { equipment_types: EquipmentType | null }) {
+    setEditingEquipment(item);
+    setEditModelName(item.model_name);
+    setEditTypeId(item.type_id);
+    setEditDailyRate(Number(item.daily_rate));
+    setEditStatus(item.status);
+    setEditMessage(null);
+  }
+
+  async function handleEditEquipment(e: FormEvent) {
+    e.preventDefault();
+    if (!editingEquipment || !editModelName.trim() || !editTypeId || !editDailyRate) return;
+
+    setIsSavingEdit(true);
+    setEditMessage(null);
+    try {
+      const res = await fetch("/api/equipment", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipment_id: editingEquipment.equipment_id,
+          model_name: editModelName.trim(),
+          type_id: Number(editTypeId),
+          daily_rate: Number(editDailyRate),
+          status: editStatus,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update equipment.");
+
+      setEquipmentList((prev) => prev.map((item) =>
+        item.equipment_id === editingEquipment.equipment_id
+          ? { ...item, ...data.equipment, equipment_types: categories.find((category) => category.type_id === Number(editTypeId)) ?? item.equipment_types }
+          : item
+      ));
+      setEditingEquipment(null);
+    } catch (err: unknown) {
+      setEditMessage(err instanceof Error ? err.message : "Failed to update equipment.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  async function handleDeleteEquipment(equipmentId: number) {
+    if (!window.confirm("Are you sure you want to delete this equipment?")) return;
+
+    setDeletingEquipmentId(equipmentId);
+    try {
+      const res = await fetch(`/api/equipment?id=${equipmentId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete equipment.");
+      setEquipmentList((prev) => prev.filter((item) => item.equipment_id !== equipmentId));
+    } catch (err: unknown) {
+      window.alert(err instanceof Error ? err.message : "Failed to delete equipment.");
+    } finally {
+      setDeletingEquipmentId(null);
+    }
+  }
+
+  async function loadEquipmentDrivers(equipmentId: number) {
+    setDriverManagerLoading(true);
+    setDriverManagerError(null);
+    try {
+      const res = await fetch(`/api/equipment/${equipmentId}/drivers`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load operators.');
+      setRegisteredDrivers(data.drivers || []);
+      setAssignedDrivers(data.assignedDrivers || []);
+    } catch (err: unknown) {
+      setDriverManagerError(err instanceof Error ? err.message : 'Failed to load operators.');
+    } finally {
+      setDriverManagerLoading(false);
+    }
+  }
+
+  function openDriverManager(item: Equipment) {
+    setDriverManager({ equipmentId: item.equipment_id, modelName: item.model_name });
+    setSelectedDriverId('');
+    setDriverHourlyRate('');
+    void loadEquipmentDrivers(item.equipment_id);
+  }
+
+  async function handleAddEquipmentDriver(e: FormEvent) {
+    e.preventDefault();
+    if (!driverManager || !selectedDriverId || !driverHourlyRate) return;
+    setDriverManagerSaving(true);
+    setDriverManagerError(null);
+    try {
+      const res = await fetch(`/api/equipment/${driverManager.equipmentId}/drivers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: Number(selectedDriverId), driver_hr_rate: Number(driverHourlyRate) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add operator.');
+      setSelectedDriverId('');
+      setDriverHourlyRate('');
+      await loadEquipmentDrivers(driverManager.equipmentId);
+    } catch (err: unknown) {
+      setDriverManagerError(err instanceof Error ? err.message : 'Failed to add operator.');
+    } finally {
+      setDriverManagerSaving(false);
     }
   }
 
@@ -405,7 +524,7 @@ export default function OwnerDashboard() {
                   : "border-transparent text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              Booking Requests ({bookings.length})
+              Incoming Requests ({bookings.length})
               {pendingBookings.length > 0 && (
                 <span className="ml-2 px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full font-bold">
                   {pendingBookings.length}
@@ -463,28 +582,27 @@ export default function OwnerDashboard() {
                         </div>
                       </div>
 
-                      <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between gap-2">
+                      <div className="mt-5 pt-4 border-t border-zinc-100 flex flex-col gap-3">
                         <select
                           value={item.status}
                           onChange={(e) =>
                             handleStatusChange(item.equipment_id, e.target.value as EquipmentStatus)
                           }
-                          className="text-xs font-medium border border-zinc-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-1 focus:ring-emerald-500"
+                          className="w-full text-xs font-medium border border-zinc-300 rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-emerald-500"
                         >
                           <option value="AVAILABLE">AVAILABLE</option>
                           <option value="RENTED">RENTED</option>
                           <option value="MAINTENANCE">MAINTENANCE</option>
                         </select>
 
-                        <button
-                          onClick={() => {
-                            setSelectedEquipId(item.equipment_id);
-                            setShowMaintModal(true);
-                          }}
-                          className="text-xs font-medium text-zinc-600 hover:text-emerald-700 border border-zinc-200 hover:border-emerald-300 px-3 py-1.5 rounded-lg"
-                        >
-                          + Log Service
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" onClick={() => openDriverManager(item)} className="min-w-0 w-full text-center text-xs font-medium text-blue-700 hover:text-blue-800 border border-blue-200 hover:border-blue-300 px-2 py-2 rounded-lg">Manage Operators</button>
+                          <button type="button" onClick={() => openEditEquipment(item)} className="min-w-0 w-full text-center text-xs font-medium text-emerald-700 hover:text-emerald-800 border border-emerald-200 hover:border-emerald-300 px-2 py-2 rounded-lg">Edit</button>
+                          <button type="button" onClick={() => handleDeleteEquipment(item.equipment_id)} disabled={deletingEquipmentId === item.equipment_id} className="min-w-0 w-full text-center text-xs font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-2 py-2 rounded-lg disabled:opacity-50">
+                            {deletingEquipmentId === item.equipment_id ? "Deleting…" : "Delete"}
+                          </button>
+                          <button type="button" onClick={() => { setSelectedEquipId(item.equipment_id); setShowMaintModal(true); }} className="min-w-0 w-full text-center text-xs font-medium text-zinc-600 hover:text-emerald-700 border border-zinc-200 hover:border-emerald-300 px-2 py-2 rounded-lg">+ Log Service</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -698,6 +816,85 @@ export default function OwnerDashboard() {
                 >
                   {isSubmitting ? "Saving…" : "Save Equipment"}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Equipment Operators Modal */}
+      {driverManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl border border-zinc-200 max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-zinc-900">Operators for {driverManager.modelName}</h2>
+            <p className="text-sm text-zinc-500 mt-1 mb-5">Link a registered driver to this machine and set their hourly charge.</p>
+            {driverManagerError && <div role="alert" className="mb-4 p-3 rounded-xl text-sm bg-red-50 text-red-800 border border-red-200">{driverManagerError}</div>}
+            {driverManagerLoading ? (
+              <p className="py-5 text-sm text-zinc-500">Loading drivers…</p>
+            ) : (
+              <>
+                <div className="mb-5">
+                  <h3 className="text-sm font-semibold text-zinc-800 mb-2">Currently assigned</h3>
+                  {assignedDrivers.length ? (
+                    <ul className="divide-y divide-zinc-100">
+                      {assignedDrivers.map((driver) => (
+                        <li key={driver.driver_id} className="py-2 flex justify-between gap-3 text-sm">
+                          <span className="text-zinc-700">{driver.users?.full_name || `Driver #${driver.driver_id}`}</span>
+                          <span className="font-medium text-emerald-700">₹{Number(driver.driver_hr_rate).toLocaleString('en-IN')}/hr</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="text-sm text-zinc-500">No drivers linked to this equipment yet.</p>}
+                </div>
+                <form onSubmit={handleAddEquipmentDriver} className="space-y-3 border-t border-zinc-100 pt-4">
+                  <h3 className="text-sm font-semibold text-zinc-800">Add or update a driver</h3>
+                  <select required value={selectedDriverId} onChange={(e) => setSelectedDriverId(e.target.value ? Number(e.target.value) : '')} className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5 bg-white">
+                    <option value="">Select registered driver</option>
+                    {registeredDrivers.map((driver) => <option key={driver.user_id} value={driver.user_id}>{driver.full_name} ({driver.email})</option>)}
+                  </select>
+                  <input aria-label="Driver hourly charge" type="number" min="0.01" step="0.01" required value={driverHourlyRate} onChange={(e) => setDriverHourlyRate(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Hourly charge (₹)" className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5" />
+                  {registeredDrivers.length === 0 && <p className="text-xs text-zinc-500">No driver profiles are registered yet.</p>}
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button type="button" onClick={() => setDriverManager(null)} disabled={driverManagerSaving} className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl">Close</button>
+                    <button type="submit" disabled={driverManagerSaving || driverManagerLoading || registeredDrivers.length === 0} className="px-5 py-2 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl">{driverManagerSaving ? 'Saving…' : 'Save Operator'}</button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Equipment Modal */}
+      {editingEquipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl border border-zinc-200 max-w-md w-full p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-zinc-900 mb-4">Edit Equipment</h2>
+            {editMessage && <div role="alert" className="mb-4 p-3 rounded-xl text-xs font-medium bg-red-50 text-red-800 border border-red-200">{editMessage}</div>}
+            <form onSubmit={handleEditEquipment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase mb-1">Model / Machine Name</label>
+                <input type="text" required value={editModelName} onChange={(e) => setEditModelName(e.target.value)} className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase mb-1">Machinery Category</label>
+                <select required value={editTypeId} onChange={(e) => setEditTypeId(e.target.value ? Number(e.target.value) : "")} className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                  {categories.map((category) => <option key={category.type_id} value={category.type_id}>{category.category_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase mb-1">Daily Rental Rate (₹)</label>
+                <input type="number" min={1} required value={editDailyRate} onChange={(e) => setEditDailyRate(e.target.value === "" ? "" : Number(e.target.value))} className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase mb-1">Status</label>
+                <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as EquipmentStatus)} className="w-full text-sm border border-zinc-300 rounded-xl px-3.5 py-2.5 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                  <option value="AVAILABLE">AVAILABLE</option><option value="RENTED">RENTED</option><option value="MAINTENANCE">MAINTENANCE</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
+                <button type="button" onClick={() => setEditingEquipment(null)} disabled={isSavingEdit} className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isSavingEdit} className="px-5 py-2 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl">{isSavingEdit ? "Saving…" : "Save Changes"}</button>
               </div>
             </form>
           </div>

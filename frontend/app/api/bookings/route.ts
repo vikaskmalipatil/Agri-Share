@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
         end_date,
         total_cost,
         status,
-        created_at,
         equipment!fk_booking_equipment (
           equipment_id,
           model_name,
@@ -60,8 +59,7 @@ export async function GET(request: NextRequest) {
           end_date,
           total_cost,
           status,
-          created_at,
-          equipment!inner (
+          equipment!fk_booking_equipment!inner (
             equipment_id,
             model_name,
             daily_rate,
@@ -95,7 +93,6 @@ export async function GET(request: NextRequest) {
         end_date: r.end_date,
         total_cost: Number(r.total_cost),
         status: r.status,
-        created_at: r.created_at,
         equipment: equip
           ? {
               model_name: equip.model_name,
@@ -273,60 +270,86 @@ export async function PATCH(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    if (session.role_type !== 'OWNER') {
+      return NextResponse.json({ error: 'Only equipment owners can update booking status.' }, { status: 403 });
+    }
 
-    const body = await request.json();
-    const { booking_id, status } = body;
+    let body: { booking_id?: unknown; status?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 });
+    }
 
-    if (!booking_id || !status) {
+    const bookingIdNum = Number(body.booking_id);
+    const status = body.status;
+    if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) {
+      return NextResponse.json({ error: 'A valid booking_id is required.' }, { status: 400 });
+    }
+    if (status !== 'CONFIRMED' && status !== 'CANCELLED') {
       return NextResponse.json(
-        { error: 'Booking ID and status are required.' },
+        { error: 'Status must be CONFIRMED or CANCELLED.' },
         { status: 400 }
       );
     }
 
-    if (!['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid booking status.' }, { status: 400 });
+    // The service-role client bypasses RLS, so verify ownership explicitly.
+    const supabase = getSupabaseAdmin();
+    const { data: booking, error: bookingErr } = await supabase
+      .from('bookings')
+      .select('booking_id, equipment_id, equipment!fk_booking_equipment!inner(owner_id)')
+      .eq('booking_id', bookingIdNum)
+      .maybeSingle();
+
+    if (bookingErr) throw new Error(bookingErr.message);
+    const equipmentRelation = booking?.equipment as
+      | { owner_id: number }
+      | { owner_id: number }[]
+      | null;
+    const equipmentOwnerId = Array.isArray(equipmentRelation)
+      ? equipmentRelation[0]?.owner_id
+      : equipmentRelation?.owner_id;
+    if (!booking || Number(equipmentOwnerId) !== session.user_id) {
+      return NextResponse.json(
+        { error: 'Booking not found or you do not own its equipment.' },
+        { status: 403 }
+      );
     }
 
-    const supabase = getSupabaseAdmin();
-    const bookingIdNum = Number(booking_id);
-
-    // Update booking status (the DB trigger will handle equipment status automatically)
-    const { error: updateErr } = await supabase
+    const { data: updatedBooking, error: updateErr } = await supabase
       .from('bookings')
       .update({ status })
-      .eq('booking_id', bookingIdNum);
+      .eq('booking_id', bookingIdNum)
+      .select('booking_id')
+      .maybeSingle();
 
     if (updateErr) throw new Error(updateErr.message);
+    if (!updatedBooking) {
+      return NextResponse.json({ error: 'Booking status was not updated.' }, { status: 403 });
+    }
 
-    // Safety net: if the trigger isn't installed, manually sync equipment status
-    // First get the equipment_id for this booking
-    const { data: bookingRow } = await supabase
-      .from('bookings')
-      .select('equipment_id')
-      .eq('booking_id', bookingIdNum)
-      .single();
-
-    if (bookingRow) {
-      if (status === 'CONFIRMED') {
-        await supabase
-          .from('equipment')
-          .update({ status: 'RENTED' })
-          .eq('equipment_id', bookingRow.equipment_id);
-      } else if (status === 'COMPLETED' || status === 'CANCELLED') {
-        // Only revert if the equipment isn't under MAINTENANCE
-        await supabase
-          .from('equipment')
-          .update({ status: 'AVAILABLE' })
-          .eq('equipment_id', bookingRow.equipment_id)
-          .neq('status', 'MAINTENANCE');
-      }
+    // Keep equipment status in sync when the database trigger is unavailable.
+    if (status === 'CONFIRMED') {
+      const { error } = await supabase
+        .from('equipment')
+        .update({ status: 'RENTED' })
+        .eq('equipment_id', booking.equipment_id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from('equipment')
+        .update({ status: 'AVAILABLE' })
+        .eq('equipment_id', booking.equipment_id)
+        .neq('status', 'MAINTENANCE');
+      if (error) throw new Error(error.message);
     }
 
     return NextResponse.json({
       success: true,
-      message: `Booking #${booking_id} status updated to ${status}.`,
-    });
+      booking_id: bookingIdNum,
+      status,
+      message: `Booking #${bookingIdNum} status updated to ${status}.`,
+    }, { status: 200 });
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json(
