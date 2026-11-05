@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
@@ -20,42 +19,41 @@ export default function FarmerDashboard() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.replace("/login"); return; }
+      try {
+        const userRes = await fetch("/api/auth/me");
+        if (!userRes.ok) { router.replace("/login"); return; }
+        const userData = await userRes.json();
+        if (!userData?.user) { router.replace("/login"); return; }
 
-      // Load user profile
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", session.user.email!)
-        .single();
+        const profile = userData.user as AppUser;
+        if (cancelled) return;
+        if (profile.role_type !== "FARMER") {
+          router.replace(`/dashboard/${profile.role_type.toLowerCase()}`);
+          return;
+        }
 
-      if (cancelled) return;
-      if (!profile) { setError("Profile not found. Please run migrations and log in again."); setIsLoading(false); return; }
-      if (profile.role_type !== "FARMER") { router.replace(`/dashboard/${profile.role_type.toLowerCase()}`); return; }
+        setUser(profile);
 
-      setUser(profile as AppUser);
+        // Load farmer's bookings from MySQL
+        const bkRes = await fetch("/api/bookings?role=farmer");
+        if (bkRes.ok) {
+          const bkData = await bkRes.json();
+          if (!cancelled) setBookings(bkData.bookings || []);
+        }
 
-      // Load bookings
-      const { data: bkData } = await supabase
-        .from("bookings")
-        .select("*, equipment(model_name)")
-        .eq("renter_id", profile.user_id)
-        .order("booking_id", { ascending: false });
-
-      if (!cancelled) setBookings((bkData as (Booking & { equipment: { model_name: string } | null })[]) || []);
-
-      // Load payments for these bookings
-      if (bkData && bkData.length > 0) {
-        const bkIds = bkData.map((b: { booking_id: number }) => b.booking_id);
-        const { data: payData } = await supabase
-          .from("payments")
-          .select("*")
-          .in("booking_id", bkIds);
-        if (!cancelled) setPayments((payData as Payment[]) || []);
+        // Load payments
+        const payRes = await fetch("/api/payments");
+        if (payRes.ok) {
+          const payData = await payRes.json();
+          if (!cancelled) setPayments(payData.payments || []);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-
-      if (!cancelled) setIsLoading(false);
     }
     load();
     return () => { cancelled = true; };
@@ -90,7 +88,7 @@ export default function FarmerDashboard() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 to-white">
+      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 to-stone-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 pb-6 border-b border-emerald-100">
@@ -102,17 +100,17 @@ export default function FarmerDashboard() {
 
           {/* Quick actions */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-            <Link href="/equipment" className="p-5 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+            <Link href="/equipment" className="p-5 rounded-2xl bg-emerald-700 text-white hover:bg-emerald-800 shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95">
               <p className="font-bold text-lg">Browse Equipment</p>
               <p className="text-sm text-emerald-100 mt-0.5">Find available machinery to rent</p>
             </Link>
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-2xl font-extrabold text-zinc-900">{upcoming.length}</p>
-              <p className="text-sm text-zinc-600 mt-0.5">Active / Upcoming Bookings</p>
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-2xl font-extrabold text-harvest">{upcoming.length}</p>
+              <p className="text-sm text-harvest mt-0.5">Active / Upcoming Bookings</p>
             </div>
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <p className="text-2xl font-extrabold text-zinc-900">{past.length}</p>
-              <p className="text-sm text-zinc-600 mt-0.5">Past Bookings</p>
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <p className="text-2xl font-extrabold text-harvest">{past.length}</p>
+              <p className="text-sm text-harvest mt-0.5">Past Bookings</p>
             </div>
           </div>
 

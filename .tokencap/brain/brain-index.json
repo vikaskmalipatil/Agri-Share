@@ -1,0 +1,53 @@
+{
+  "api": [
+    "frontend/app/api/admin/data/route.ts",
+    "frontend/app/api/bookings/route.ts",
+    "frontend/app/api/categories/route.ts",
+    "frontend/app/api/drivers/equipment/route.ts",
+    "frontend/app/api/equipment/[id]/route.ts",
+    "frontend/app/api/equipment/route.ts",
+    "frontend/app/api/maintenance/route.ts",
+    "frontend/app/api/payments/route.ts",
+    "frontend/middleware.ts"
+  ],
+  "authentication": [
+    "frontend/app/api/auth/login/route.ts",
+    "frontend/app/api/auth/logout/route.ts",
+    "frontend/app/api/auth/me/route.ts",
+    "frontend/app/api/auth/signup/route.ts",
+    "frontend/app/login/page.tsx",
+    "frontend/app/signup/page.tsx"
+  ],
+  "database": [
+    ".tokencap/constitution/schema-invariants.yaml",
+    "frontend/lib/db.ts"
+  ],
+  "lib (types)": [
+    "frontend/lib/auth.ts",
+    "frontend/lib/types.ts"
+  ],
+  "other": [
+    ".tokencap/constitution/api-contracts.yaml",
+    ".tokencap/constitution/constitution.yaml"
+  ],
+  "dashboard": [
+    "frontend/app/dashboard/admin/page.tsx",
+    "frontend/app/dashboard/driver/page.tsx",
+    "frontend/app/dashboard/farmer/page.tsx",
+    "frontend/app/dashboard/owner/page.tsx"
+  ],
+  "frontend": [
+    "frontend/app/equipment/[id]/page.tsx",
+    "frontend/app/equipment/page.tsx",
+    "frontend/app/layout.tsx",
+    "frontend/app/page.tsx",
+    "frontend/components/Footer.tsx",
+    "frontend/components/Navbar.tsx",
+    "frontend/components/StatusBadge.tsx"
+  ],
+  "config": [
+    "frontend/eslint.config.mjs",
+    "frontend/next-env.d.ts",
+    "frontend/next.config.ts"
+  ]
+}

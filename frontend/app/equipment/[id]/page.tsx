@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo, FormEvent, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EquipmentStatusBadge } from "@/components/StatusBadge";
@@ -63,48 +63,33 @@ function EquipmentDetailContent() {
 
       try {
         // Fetch current session & user profile
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session && !cancelled) {
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("email", session.user.email!)
-            .single();
-          if (profile && !cancelled) {
-            setCurrentUser(profile as AppUser);
+        const userRes = await fetch("/api/auth/me");
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData?.user && !cancelled) {
+            setCurrentUser(userData.user as AppUser);
           }
         }
 
-        // Fetch equipment with type info
-        const { data: equipData, error: equipError } = await supabase
-          .from("equipment")
-          .select(
-            "equipment_id, model_name, daily_rate, status, type_id, owner_id, equipment_types(category_name, description)"
-          )
-          .eq("equipment_id", numId)
-          .single();
-
+        // Fetch equipment & drivers from MySQL API
+        const equipRes = await fetch(`/api/equipment/${numId}`);
         if (cancelled) return;
 
-        if (equipError || !equipData) {
+        if (!equipRes.ok) {
           setNotFound(true);
           setIsLoading(false);
           return;
         }
 
-        setEquipment(equipData as unknown as EquipmentDetail);
-
-        // Fetch qualified drivers for this machine
-        const { data: driverData } = await supabase
-          .from("equipment_drivers")
-          .select("equipment_id, driver_id, driver_hr_rate, cert_date, users:driver_id(full_name, phone)")
-          .eq("equipment_id", numId);
-
-        if (!cancelled) {
-          setDrivers((driverData as unknown as DriverWithUser[]) || []);
+        const equipJson = await equipRes.json();
+        if (!equipJson.equipment) {
+          setNotFound(true);
+          setIsLoading(false);
+          return;
         }
+
+        setEquipment(equipJson.equipment as EquipmentDetail);
+        setDrivers(equipJson.drivers || []);
       } catch (err: unknown) {
         if (!cancelled) {
           setError(
@@ -179,70 +164,24 @@ function EquipmentDetailContent() {
     setBookingError(null);
 
     try {
-      // 1. First attempt to call the concurrency-safe PostgreSQL function
-      const { data: rpcData, error: rpcErr } = await supabase.rpc("create_booking_safe", {
-        p_renter_id: currentUser.user_id,
-        p_equipment_id: equipment?.equipment_id,
-        p_driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
-        p_start_date: startDate,
-        p_end_date: endDate,
-        p_total_cost: calculatedCost.total,
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipment_id: equipment?.equipment_id,
+          driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
+          start_date: startDate,
+          end_date: endDate,
+          total_cost: calculatedCost.total,
+        }),
       });
 
-      let newBookingId: number | null = null;
-
-      if (!rpcErr && rpcData && rpcData.length > 0) {
-        if (rpcData[0].error_message) {
-          throw new Error(rpcData[0].error_message);
-        }
-        newBookingId = rpcData[0].booking_id;
-      } else {
-        // Fallback: Check overlapping bookings
-        const { data: conflicts } = await supabase
-          .from("bookings")
-          .select("booking_id")
-          .eq("equipment_id", equipment?.equipment_id)
-          .in("status", ["PENDING", "CONFIRMED"])
-          .lte("start_date", endDate)
-          .gte("end_date", startDate);
-
-        if (conflicts && conflicts.length > 0) {
-          throw new Error(
-            "This machine has already been booked for the selected dates. Please choose different dates."
-          );
-        }
-
-        // Insert booking record
-        const { data: inserted, error: insertErr } = await supabase
-          .from("bookings")
-          .insert({
-            renter_id: currentUser.user_id,
-            equipment_id: equipment?.equipment_id,
-            driver_id: selectedDriverId !== "" ? Number(selectedDriverId) : null,
-            start_date: startDate,
-            end_date: endDate,
-            total_cost: calculatedCost.total,
-            status: "PENDING",
-          })
-          .select("booking_id")
-          .single();
-
-        if (insertErr) throw insertErr;
-        newBookingId = inserted.booking_id;
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to complete booking.");
       }
 
-      // 2. Insert initial payment record (Academic demo payment workflow)
-      if (newBookingId) {
-        await supabase.from("payments").insert({
-          booking_id: newBookingId,
-          amount: calculatedCost.total,
-          payment_method: "UPI",
-          payment_status: "PENDING",
-          transaction_time: new Date().toISOString(),
-        });
-      }
-
-      setBookingSuccessId(newBookingId);
+      setBookingSuccessId(data.booking_id);
     } catch (err: unknown) {
       setBookingError(
         err instanceof Error ? err.message : "Failed to complete booking. Please try again."
@@ -278,7 +217,7 @@ function EquipmentDetailContent() {
     return (
       <div className="min-h-screen bg-white flex flex-col font-sans">
         <Navbar activePage="equipment" />
-        <main className="flex-1 py-12 bg-gradient-to-b from-emerald-50/40 to-white">
+        <main className="flex-1 py-12 bg-gradient-to-b from-emerald-50/40 to-stone-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="animate-pulse space-y-6">
               <div className="h-4 w-32 bg-zinc-200 rounded" />
@@ -322,7 +261,7 @@ function EquipmentDetailContent() {
             </p>
             <Link
               href="/equipment"
-              className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+              className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
             >
               ← Back to Equipment
             </Link>
@@ -354,7 +293,7 @@ function EquipmentDetailContent() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar activePage="equipment" />
 
-      <main className="flex-1 py-10 sm:py-14 bg-gradient-to-b from-emerald-50/40 to-white">
+      <main className="flex-1 py-10 sm:py-14 bg-gradient-to-b from-emerald-50/40 to-stone-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs text-zinc-500 mb-6">
@@ -373,6 +312,15 @@ function EquipmentDetailContent() {
 
           {/* Main Card */}
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+            <div className="farm-image-frame relative aspect-[2.4/1] min-h-44">
+              <Image
+                src="/farm-equipment.svg"
+                alt={`Farm equipment available to rent: ${equipment.model_name}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 896px"
+                className="object-cover"
+              />
+            </div>
             {/* Header Banner */}
             <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 p-8 text-white">
               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -502,7 +450,7 @@ function EquipmentDetailContent() {
                         setShowBookingModal(true);
                       }
                     }}
-                    className="w-full sm:w-auto flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-8 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm hover:shadow-md transition-all text-center"
+                    className="w-full sm:w-auto flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-8 py-3 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95 text-center"
                   >
                     <span>Reserve Equipment Now</span>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -539,7 +487,7 @@ function EquipmentDetailContent() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
                     href="/dashboard/farmer"
-                    className="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs"
+                    className="px-6 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                   >
                     View in Farmer Dashboard
                   </Link>
@@ -677,7 +625,7 @@ function EquipmentDetailContent() {
                     <button
                       type="submit"
                       disabled={bookingLoading || rentalDays <= 0}
-                      className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow-xs transition-colors"
+                      className="px-6 py-2.5 text-xs font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95"
                     >
                       {bookingLoading ? "Reserving Machine…" : "Confirm Booking"}
                     </button>
@@ -700,7 +648,7 @@ export default function EquipmentDetailPage() {
       fallback={
         <div className="min-h-screen bg-white flex flex-col font-sans">
           <Navbar activePage="equipment" />
-          <main className="flex-1 py-12 bg-gradient-to-b from-emerald-50/40 to-white">
+          <main className="flex-1 py-12 bg-gradient-to-b from-emerald-50/40 to-stone-50">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="animate-pulse space-y-6">
                 <div className="h-4 w-32 bg-zinc-200 rounded" />

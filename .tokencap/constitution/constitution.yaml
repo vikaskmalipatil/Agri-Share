@@ -1,0 +1,443 @@
+# TokenCap Constitution Engine
+# Generated: 2026-10-25T05:54:20.830Z
+# Version: 1.2
+
+constitution:
+  version: "1.2"
+  generated_at: "2026-10-25T05:54:20.830Z"
+  rule_count: 28
+
+  score:
+    total:            95
+    architecture:     100
+    api_stability:    100
+    schema_integrity: 100
+    security:         85
+    compliance:       95
+
+  rules:
+    - id: "CONST-SCHEMA-001"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        equipment_types(type_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing equipment_types(type_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-002"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        equipment(equipment_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing equipment(equipment_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-003"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        equipment_drivers(equipment_id, driver_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing equipment_drivers(equipment_id, driver_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-004"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        maintenance_logs(log_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing maintenance_logs(log_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-005"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        bookings(booking_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing bookings(booking_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-006"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        payments(payment_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing payments(payment_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SCHEMA-007"
+      category: "Schema"
+      severity: "IMMUTABLE"
+      confidence: 0.95
+      source: "sql"
+      manual: false
+      description: |-
+        reviews(review_id) primary key must not change type or be removed.
+      reason: |-
+        SQL PRIMARY KEY. Changing it requires full table migration and breaks all foreign keys.
+      what_breaks: |-
+        All tables with FOREIGN KEY referencing reviews(review_id) break.
+      derived_from:
+        - "database/schema.sql"
+
+    - id: "CONST-SEC-001"
+      category: "Security"
+      severity: "CRITICAL"
+      confidence: 0.90
+      source: "heuristic"
+      manual: false
+      description: |-
+        Environment secrets must never be hardcoded in source files.
+      reason: |-
+        Secrets committed to source are exposed via version control history and repository access.
+      what_breaks: |-
+        Security breach. API keys, database credentials, and tokens compromised.
+      derived_from:
+        - "frontend/lib/auth.ts"
+        - "frontend/lib/db.ts"
+
+    - id: "CONST-FLOW-001"
+      category: "CriticalFlow"
+      severity: "CRITICAL"
+      confidence: 0.95
+      source: "heuristic"
+      manual: false
+      description: |-
+        Authentication Flow is repository-critical and must remain intact end-to-end.
+      reason: |-
+        Every protected page and authenticated feature depends on this flow working correctly.
+      what_breaks: |-
+        Users cannot log in. All authenticated features become unreachable. Sessions invalidated.
+      derived_from:
+        - "frontend/app/api/auth/login/route.ts"
+        - "frontend/app/api/auth/logout/route.ts"
+        - "frontend/app/api/auth/me/route.ts"
+        - "frontend/app/api/auth/signup/route.ts"
+        - "frontend/app/login/page.tsx"
+      relationships:
+        - "dependsOn:CONST-SEC-001"
+        - "dependsOn:CONST-API-002"
+        - "dependsOn:CONST-API-003"
+        - "dependsOn:CONST-API-004"
+        - "dependsOn:CONST-API-005"
+
+    - id: "CONST-FLOW-002"
+      category: "CriticalFlow"
+      severity: "CRITICAL"
+      confidence: 0.93
+      source: "heuristic"
+      manual: false
+      description: |-
+        Payment Flow is repository-critical. Checkout must complete reliably.
+      reason: |-
+        Revenue depends entirely on the payment flow being operational and correct.
+      what_breaks: |-
+        Users cannot complete purchases. Revenue stops. Potential chargebacks and disputes.
+      derived_from:
+        - "frontend/app/api/payments/route.ts"
+      relationships:
+        - "dependsOn:CONST-SEC-001"
+
+    - id: "CONST-FLOW-003"
+      category: "CriticalFlow"
+      severity: "CRITICAL"
+      confidence: 0.92
+      source: "heuristic"
+      manual: false
+      description: |-
+        User Registration Flow must remain functional. New users must be able to create accounts.
+      reason: |-
+        Registration is the entry point for all new users. Breaking it stops user growth.
+      what_breaks: |-
+        New users cannot create accounts. User acquisition blocked.
+      derived_from:
+        - "frontend/app/api/auth/signup/route.ts"
+        - "frontend/app/signup/page.tsx"
+      relationships:
+        - "dependsOn:CONST-SEC-001"
+
+    - id: "CONST-API-001"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/admin/data public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/admin/data/route.ts"
+
+    - id: "CONST-API-002"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/auth/login public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/auth/login/route.ts"
+
+    - id: "CONST-API-003"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/auth/logout public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/auth/logout/route.ts"
+
+    - id: "CONST-API-004"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/auth/me public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/auth/me/route.ts"
+
+    - id: "CONST-API-005"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/auth/signup public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/auth/signup/route.ts"
+
+    - id: "CONST-API-006"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/bookings public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/bookings/route.ts"
+
+    - id: "CONST-API-007"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/categories public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/categories/route.ts"
+
+    - id: "CONST-API-008"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/drivers/equipment public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/drivers/equipment/route.ts"
+
+    - id: "CONST-API-009"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/equipment public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/equipment/route.ts"
+
+    - id: "CONST-API-010"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/equipment/[id] public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/equipment/[id]/route.ts"
+
+    - id: "CONST-API-011"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/maintenance public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/maintenance/route.ts"
+
+    - id: "CONST-API-012"
+      category: "API"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "nextjs"
+      manual: false
+      description: |-
+        /api/payments public response structure must remain backward compatible.
+      reason: |-
+        Public API endpoints form the contract between this service and its consumers.
+      what_breaks: |-
+        External integrations, mobile apps, or SDKs break if response shape changes.
+      derived_from:
+        - "frontend/app/api/payments/route.ts"
+
+    - id: "CONST-ARCH-001"
+      category: "Architecture"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "heuristic"
+      manual: false
+      description: |-
+        Services cannot import UI components.
+      reason: |-
+        Importing UI components into services couples server-side logic to browser rendering. This breaks SSR, testability, and separation of concerns.
+      what_breaks: |-
+        Server-side services gain browser-only dependencies. Unit tests for services fail. SSR breaks.
+
+    - id: "CONST-ARCH-002"
+      category: "Architecture"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "heuristic"
+      manual: false
+      description: |-
+        Controllers cannot access the database directly.
+      reason: |-
+        Direct DB access in controllers bypasses the service layer. This breaks the layered architecture and makes logic untestable.
+      what_breaks: |-
+        Business logic leaks into controllers. Database coupling makes refactoring expensive.
+
+    - id: "CONST-ARCH-003"
+      category: "Architecture"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "heuristic"
+      manual: false
+      description: |-
+        Route handlers cannot access the database directly.
+      reason: |-
+        Routes should delegate to services/controllers, not query the database themselves.
+      what_breaks: |-
+        Business logic scattered across route files. Impossible to test in isolation.
+
+    - id: "CONST-ARCH-004"
+      category: "Architecture"
+      severity: "HIGH"
+      confidence: 0.72
+      source: "heuristic"
+      manual: false
+      description: |-
+        UI components cannot import server-only modules.
+      reason: |-
+        Server-only modules may contain secrets or Node.js-only APIs that crash in the browser.
+      what_breaks: |-
+        Build errors in browser environments. Potential secret exposure.
+
+    - id: "CONST-ARCH-005"
+      category: "Architecture"
+      severity: "HIGH"
+      confidence: 0.80
+      source: "heuristic"
+      manual: false
+      description: |-
+        High-impact clusters (Other, Database, API) must not gain new circular dependencies.
+      reason: |-
+        High-impact clusters already coordinate many modules. Adding circular imports makes builds fragile.
+      what_breaks: |-
+        Module resolution fails. Build tools (webpack, esbuild) may hang or produce incorrect output.

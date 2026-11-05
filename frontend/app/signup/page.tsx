@@ -3,7 +3,6 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import type { UserRole } from "@/lib/types";
@@ -30,7 +29,6 @@ export default function SignupPage() {
     confirm_password: "",
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   function handleChange(
@@ -62,58 +60,26 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // 1. Create Supabase Auth account
-      const { data: authData, error: authError } =
-        await supabase.auth.signUp({
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: form.full_name,
           email: form.email,
           password: form.password,
-        });
+          phone: form.phone || null,
+          address: form.address || null,
+          role_type: form.role_type,
+        }),
+      });
 
-      if (authError) {
-        throw new Error(authError.message);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed. Please try again.");
       }
 
-      if (!authData.user) {
-        throw new Error(
-          "Account creation succeeded but no user was returned."
-        );
-      }
-
-      // 2. Insert the application profile into public.users
-      //    We match auth user via email (auth_user_id column added by migration).
-      //    If the migration has NOT been applied yet, we insert without auth_user_id.
-      const profilePayload: Record<string, unknown> = {
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone || null,
-        address: form.address || null,
-        role_type: form.role_type,
-      };
-
-      const { error: profileError } = await supabase
-        .from("users")
-        .insert(profilePayload);
-
-      if (profileError) {
-        // Auth account was created but profile insert failed.
-        // This can happen if RLS blocks the insert (migration + policy needed).
-        console.error("Profile insert error:", profileError);
-        setSuccess(true); // Auth account exists; user should run migrations
-        setError(
-          "Your authentication account was created, but the profile could not be saved. " +
-            "Please ask the administrator to run the required SQL migrations, then log in."
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      setSuccess(true);
-
-      // If email confirmation is disabled, redirect immediately
-      if (authData.session) {
-        router.push(DASHBOARD_MAP[form.role_type]);
-        router.refresh();
-      }
+      router.push(DASHBOARD_MAP[form.role_type]);
+      router.refresh();
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -129,50 +95,11 @@ export default function SignupPage() {
     "w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition";
   const labelClass = "block text-sm font-medium text-zinc-700 mb-1.5";
 
-  if (success && !error) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col font-sans">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <div className="w-full max-w-md text-center bg-white rounded-2xl border border-emerald-100 shadow-sm p-10">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-5">
-              <svg
-                className="w-7 h-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-zinc-900">Account Created!</h2>
-            <p className="text-sm text-zinc-600 mt-2 leading-relaxed">
-              Please check your email to confirm your account, then{" "}
-              <Link
-                href="/login"
-                className="font-semibold text-emerald-700 hover:underline"
-              >
-                sign in
-              </Link>
-              .
-            </p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12 bg-gradient-to-b from-emerald-50/40 to-white">
+      <main className="flex-1 flex items-center justify-center px-4 py-12 bg-gradient-to-b from-emerald-50/40 to-stone-50">
         <div className="w-full max-w-lg">
           <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-8">
             <div className="text-center mb-8">
@@ -335,7 +262,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors mt-2"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl shadow-md shadow-emerald-900/10 transition-all duration-200 active:scale-95 mt-2"
               >
                 {isLoading ? (
                   <>

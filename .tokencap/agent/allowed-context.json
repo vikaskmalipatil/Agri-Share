@@ -1,0 +1,44 @@
+{
+  "api": [
+    "frontend/app/api/admin/data/route*",
+    "frontend/app/api/bookings/route*",
+    "frontend/app/api/categories/route*",
+    "frontend/app/api/drivers/equipment/route*",
+    "frontend/app/api/equipment/[id]/route*",
+    "frontend/app/api/equipment/route*",
+    "frontend/app/api/maintenance/route*",
+    "frontend/app/api/payments/route*",
+    "frontend/middleware*"
+  ],
+  "authentication": [
+    "frontend/app/api/auth/login/route*",
+    "frontend/app/api/auth/logout/route*",
+    "frontend/app/api/auth/me/route*",
+    "frontend/app/api/auth/signup/route*",
+    "frontend/app/login/page*",
+    "frontend/app/signup/page*"
+  ],
+  "database": [
+    ".tokencap/constitution/schema-invariants*",
+    "frontend/lib/db.ts"
+  ],
+  "lib-types": [
+    "frontend/lib/**"
+  ],
+  "other": [
+    ".tokencap/constitution/**"
+  ],
+  "dashboard": [
+    "frontend/app/dashboard/admin/page*",
+    "frontend/app/dashboard/driver/page*",
+    "frontend/app/dashboard/farmer/page*",
+    "frontend/app/dashboard/owner/page*"
+  ],
+  "frontend": [
+    "frontend/app/**",
+    "frontend/components/**"
+  ],
+  "config": [
+    "frontend/**"
+  ]
+}

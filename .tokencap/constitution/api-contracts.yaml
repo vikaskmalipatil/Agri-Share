@@ -1,0 +1,74 @@
+# API Contracts
+# TokenCap Constitution Engine
+
+CONST-API-001: /api/admin/data public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/admin/data/route.ts
+
+CONST-API-002: /api/auth/login public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/auth/login/route.ts
+
+CONST-API-003: /api/auth/logout public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/auth/logout/route.ts
+
+CONST-API-004: /api/auth/me public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/auth/me/route.ts
+
+CONST-API-005: /api/auth/signup public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/auth/signup/route.ts
+
+CONST-API-006: /api/bookings public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/bookings/route.ts
+
+CONST-API-007: /api/categories public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/categories/route.ts
+
+CONST-API-008: /api/drivers/equipment public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/drivers/equipment/route.ts
+
+CONST-API-009: /api/equipment public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/equipment/route.ts
+
+CONST-API-010: /api/equipment/[id] public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/equipment/[id]/route.ts
+
+CONST-API-011: /api/maintenance public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/maintenance/route.ts
+
+CONST-API-012: /api/payments public response structure must remain backward compatible.
+  severity:   HIGH
+  confidence: 0.72
+  source:     nextjs
+  derivedFrom: frontend/app/api/payments/route.ts

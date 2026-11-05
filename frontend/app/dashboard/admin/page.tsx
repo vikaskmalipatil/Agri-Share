@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -41,48 +40,23 @@ export default function AdminDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace("/login");
-        return;
+      const res = await fetch("/api/admin/data");
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          router.replace("/login");
+          return;
+        }
+        const errJson = await res.json();
+        throw new Error(errJson.error || "Failed to load admin data");
       }
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", session.user.email!)
-        .single();
-
-      if (!profile) {
-        setError("User profile not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (profile.role_type !== "ADMIN") {
-        setError("Unauthorized access. Admin privileges required.");
-        setIsLoading(false);
-        return;
-      }
-
-      setCurrentUser(profile as AppUser);
-
-      // Load all system data
-      const [uRes, eRes, bRes, pRes, rRes] = await Promise.all([
-        supabase.from("users").select("*").order("created_at", { ascending: false }),
-        supabase.from("equipment").select("*").order("equipment_id", { ascending: false }),
-        supabase.from("bookings").select("*").order("booking_id", { ascending: false }),
-        supabase.from("payments").select("*").order("transaction_time", { ascending: false }),
-        supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-      ]);
-
-      setUsers((uRes.data as AppUser[]) || []);
-      setEquipment((eRes.data as Equipment[]) || []);
-      setBookings((bRes.data as Booking[]) || []);
-      setPayments((pRes.data as Payment[]) || []);
-      setReviews((rRes.data as Review[]) || []);
+      const data = await res.json();
+      setCurrentUser(data.currentUser);
+      setUsers(data.users || []);
+      setEquipment(data.equipment || []);
+      setBookings(data.bookings || []);
+      setPayments(data.payments || []);
+      setReviews(data.reviews || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load admin data");
     } finally {
@@ -93,54 +67,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    async function initialLoad() {
+    async function initialFetch() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", session.user.email!)
-          .single();
-
+        const res = await fetch("/api/admin/data");
         if (cancelled) return;
-
-        if (!profile) {
-          setError("User profile not found.");
-          setIsLoading(false);
-          return;
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            router.replace("/login");
+            return;
+          }
+          const errJson = await res.json();
+          throw new Error(errJson.error || "Failed to load admin data");
         }
 
-        if (profile.role_type !== "ADMIN") {
-          setError("Unauthorized access. Admin privileges required.");
-          setIsLoading(false);
-          return;
-        }
-
-        setCurrentUser(profile as AppUser);
-
-        // Load all system data
-        const [uRes, eRes, bRes, pRes, rRes] = await Promise.all([
-          supabase.from("users").select("*").order("created_at", { ascending: false }),
-          supabase.from("equipment").select("*").order("equipment_id", { ascending: false }),
-          supabase.from("bookings").select("*").order("booking_id", { ascending: false }),
-          supabase.from("payments").select("*").order("transaction_time", { ascending: false }),
-          supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-        ]);
-
+        const data = await res.json();
         if (cancelled) return;
-
-        setUsers((uRes.data as AppUser[]) || []);
-        setEquipment((eRes.data as Equipment[]) || []);
-        setBookings((bRes.data as Booking[]) || []);
-        setPayments((pRes.data as Payment[]) || []);
-        setReviews((rRes.data as Review[]) || []);
+        setCurrentUser(data.currentUser);
+        setUsers(data.users || []);
+        setEquipment(data.equipment || []);
+        setBookings(data.bookings || []);
+        setPayments(data.payments || []);
+        setReviews(data.reviews || []);
       } catch (err: unknown) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load admin data");
@@ -152,7 +99,7 @@ export default function AdminDashboard() {
       }
     }
 
-    initialLoad();
+    initialFetch();
 
     return () => {
       cancelled = true;
@@ -186,7 +133,7 @@ export default function AdminDashboard() {
             <p className="text-sm text-zinc-600 mb-4">{error}</p>
             <Link
               href="/"
-              className="inline-block px-5 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-xl"
+              className="inline-block px-5 py-2 text-xs font-medium text-white bg-emerald-700 rounded-xl shadow-md shadow-emerald-900/10"
             >
               Return to Home
             </Link>
@@ -214,7 +161,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-white to-white">
+      <main className="flex-1 py-10 bg-gradient-to-b from-emerald-50/40 via-stone-50 to-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="pb-6 mb-8 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -240,32 +187,32 @@ export default function AdminDashboard() {
 
           {/* Aggregated Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Total Users
               </span>
-              <span className="text-2xl font-extrabold text-zinc-900">{users.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{users.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Equipment Listed
               </span>
-              <span className="text-2xl font-extrabold text-emerald-700">{equipment.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{equipment.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Total Bookings
               </span>
-              <span className="text-2xl font-extrabold text-blue-700">{bookings.length}</span>
+              <span className="text-2xl font-extrabold text-harvest">{bookings.length}</span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-xs">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold block mb-1">
+            <div className="p-5 rounded-2xl bg-pasture border border-emerald-800/10 shadow-sm">
+              <span className="text-xs uppercase tracking-wider text-harvest font-semibold block mb-1">
                 Successful Payments
               </span>
-              <span className="text-2xl font-extrabold text-emerald-800">
+              <span className="text-2xl font-extrabold text-harvest">
                 ₹{totalRevenue.toLocaleString("en-IN")}
               </span>
             </div>
@@ -354,12 +301,12 @@ export default function AdminDashboard() {
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   u.role_type === "ADMIN"
-                                    ? "bg-purple-100 text-purple-700"
+                                    ? "bg-earth/10 text-earth"
                                     : u.role_type === "OWNER"
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-crop/25 text-earth"
                                     : u.role_type === "DRIVER"
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-emerald-100 text-emerald-700"
+                                    ? "bg-leaf/10 text-leaf-dark"
+                                    : "bg-emerald-100 text-harvest"
                                 }`}
                               >
                                 {u.role_type}

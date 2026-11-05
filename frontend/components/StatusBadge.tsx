@@ -11,15 +11,15 @@ export function EquipmentStatusBadge({
   pulse = false,
 }: EquipmentStatusBadgeProps) {
   const styles: Record<EquipmentStatus, string> = {
-    AVAILABLE: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-    RENTED: "bg-amber-50 text-amber-700 border-amber-200/70",
-    MAINTENANCE: "bg-red-50 text-red-700 border-red-200/70",
+    AVAILABLE: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    RENTED: "bg-amber-100 text-amber-800 border-amber-300",
+    MAINTENANCE: "bg-rose-100 text-rose-800 border-rose-300",
   };
 
   const dotStyles: Record<EquipmentStatus, string> = {
-    AVAILABLE: "bg-emerald-500",
+    AVAILABLE: "bg-emerald-600",
     RENTED: "bg-amber-500",
-    MAINTENANCE: "bg-red-500",
+    MAINTENANCE: "bg-rose-600",
   };
 
   return (
@@ -43,10 +43,10 @@ interface BookingStatusBadgeProps {
 
 export function BookingStatusBadge({ status }: BookingStatusBadgeProps) {
   const styles: Record<BookingStatus, string> = {
-    PENDING: "bg-yellow-50 text-yellow-700 border-yellow-200/70",
-    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200/70",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-    CANCELLED: "bg-zinc-100 text-zinc-500 border-zinc-200/70",
+    PENDING: "bg-amber-100 text-amber-800 border-amber-300",
+    CONFIRMED: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    COMPLETED: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    CANCELLED: "bg-zinc-100 text-zinc-600 border-zinc-200/70",
   };
 
   return (
@@ -65,9 +65,9 @@ interface PaymentStatusBadgeProps {
 
 export function PaymentStatusBadge({ status }: PaymentStatusBadgeProps) {
   const styles: Record<PaymentStatus, string> = {
-    PENDING: "bg-yellow-50 text-yellow-700 border-yellow-200/70",
-    SUCCESSFUL: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-    FAILED: "bg-red-50 text-red-700 border-red-200/70",
+    PENDING: "bg-amber-100 text-amber-800 border-amber-300",
+    SUCCESSFUL: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    FAILED: "bg-rose-100 text-rose-800 border-rose-300",
   };
 
   return (
